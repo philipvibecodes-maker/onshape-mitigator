@@ -26,4 +26,5 @@ export type CadKey = {
 	type?: "text" | "action" | "operator" | "unit" | "function" | "primary";
 	modifiers?: KeyModifiers;
 	className?: string;
+	tooltip?: string;
 };

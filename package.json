@@ -1,4 +1,6 @@
 {
+	"name": "onshape-mitigator",
+	"private": true,
 	"scripts": {
 		"format": "prettier --write .",
 		"dev": "vite",

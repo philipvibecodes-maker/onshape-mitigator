@@ -1,6 +1,8 @@
-# Rally for Onshape
+# Onshape Mitigator
 
-Make Onshape faster, cleaner, and easier to use.
+> Fork of [Rally for Onshape](https://github.com/RileyDavidson-Evans/onshape-plus) (MIT). Original project by Riley Davidson-Evans.
+
+Make Onshape faster, cleaner, and easier to use — plus additional tooling: tooltips on all extension icons, a collapsible sketch toolbar, configurable keyboard shortcuts (including opening the variables table), and one-click document context export for AI assistants.
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 ![Privacy](https://img.shields.io/badge/Data%20Collection-None-success)
@@ -77,6 +79,13 @@ Reduce repetitive actions and keep common tools within reach.
 * Dynamic command layouts
 * Context-aware actions
 * Persistent UI positioning and preferences
+
+### Onshape Mitigator additions
+
+* Tooltips on extension icons that previously had none
+* Collapsible Onshape sketch toolbar (Alt+T by default)
+* Configurable keyboard shortcuts — open the variables table (Alt+V), toggle the sidebar (Alt+B), copy AI context (Alt+C), and more; remap in Settings
+* Copy document context (IDs, element, active tool, selections, feature list, variables) to the clipboard for AI chatbots, with optional auto-open of a configurable chatbot URL
 
 ### Seamless Integration
 

@@ -39,6 +39,8 @@ export type CanvasBackground = {
 	blur: number;
 };
 
+export type KeyboardShortcutBindings = Record<string, string>;
+
 export type OnshapePlusStorageSchema = {
 	settingsVersion: number;
 	smartActionsEnabled: boolean;
@@ -50,6 +52,11 @@ export type OnshapePlusStorageSchema = {
 	toolbarQuickActions: ToolbarQuickActionsConfig;
 	migrations: Migrations;
 	canvasBackground: CanvasBackground;
+	sketchToolbarCollapsed: boolean;
+	penSidebarCollapsed: boolean;
+	keyboardShortcuts: KeyboardShortcutBindings;
+	aiChatbotUrl: string;
+	aiOpenAfterCopy: boolean;
 };
 
 export const DEFAULT_STORAGE_VALUES: OnshapePlusStorageSchema = {
@@ -124,6 +131,22 @@ export const DEFAULT_STORAGE_VALUES: OnshapePlusStorageSchema = {
 		opacity: 0.2,
 		blur: 0,
 	},
+
+	sketchToolbarCollapsed: false,
+
+	penSidebarCollapsed: false,
+
+	keyboardShortcuts: {
+		openVariablesTable: "Alt+V",
+		togglePenSidebar: "Alt+B",
+		toggleSketchToolbar: "Alt+Shift+T",
+		copyAiContext: "Alt+Shift+C",
+		openSettings: "",
+	},
+
+	aiChatbotUrl: "https://chatgpt.com/?q={context}",
+
+	aiOpenAfterCopy: true,
 
 	migrations: {
 		initialToolbarActionsMigrated: false,

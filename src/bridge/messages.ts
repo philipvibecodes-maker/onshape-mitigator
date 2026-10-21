@@ -50,13 +50,14 @@ async function handleGetAllCommandsCommands(): Promise<void> {
 	}
 }
 
-function handleCurrentUserSelectionsCommands() {
+function handleCurrentUserSelectionsCommands(data: { requestId?: string }) {
 	try {
 		const result = getCurrentSelectionCommands();
 		window.postMessage(
 			{
 				name: FORWARDED_ONSHAPE_EVENTS.SELECTION_UPDATED,
 				data: result,
+				requestId: data.requestId,
 				type: ACCEPTED_ONSHAPE_TO_EXTENSION_EVENT_TYPE,
 			},
 			window.location.origin,
@@ -66,6 +67,7 @@ function handleCurrentUserSelectionsCommands() {
 			{
 				name: FORWARDED_ONSHAPE_EVENTS.SELECTION_UPDATED,
 				data: [],
+				requestId: data.requestId,
 				type: ACCEPTED_ONSHAPE_TO_EXTENSION_EVENT_TYPE,
 			},
 			window.location.origin,
@@ -87,7 +89,7 @@ export function handleMessage(event: MessageEvent<unknown>): void {
 		// }
 
 		case "GET_CURRENT_USER_SELECTIONS": {
-			handleCurrentUserSelectionsCommands();
+			handleCurrentUserSelectionsCommands(data);
 			return;
 		}
 

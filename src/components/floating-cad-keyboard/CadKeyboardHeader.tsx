@@ -1,5 +1,10 @@
 import { Settings, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ACTION_DELAY } from "./keyboardTypes";
 
 type CadKeyboardHeaderProps = {
@@ -22,36 +27,46 @@ export function CadKeyboardHeader({
 			</div>
 
 			<div className="flex gap-1">
-				<Button
-					className="h-7 w-7 cursor-pointer"
-					variant="ghost"
-					size="icon"
-					type="button"
-					tabIndex={-1}
-					onPointerDown={(e) => {
-						e.preventDefault();
-						e.stopPropagation();
-						onOpenSettings();
-					}}
-				>
-					<Settings />
-				</Button>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							className="h-7 w-7 cursor-pointer"
+							variant="ghost"
+							size="icon"
+							type="button"
+							tabIndex={-1}
+							onPointerDown={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								onOpenSettings();
+							}}
+						>
+							<Settings />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>Extension settings</TooltipContent>
+				</Tooltip>
 
-				<Button
-					className="h-7 w-7 cursor-pointer rounded-md text-slate-400 hover:bg-white/10 hover:text-white"
-					variant="ghost"
-					size="icon"
-					type="button"
-					tabIndex={-1}
-					onPointerDown={(e) => {
-						e.preventDefault();
-						e.stopPropagation();
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							className="h-7 w-7 cursor-pointer rounded-md text-slate-400 hover:bg-white/10 hover:text-white"
+							variant="ghost"
+							size="icon"
+							type="button"
+							tabIndex={-1}
+							onPointerDown={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
 
-            onClose();
-					}}
-				>
-					<X className="h-4 w-4" />
-				</Button>
+								onClose();
+							}}
+						>
+							<X className="h-4 w-4" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>Close keyboard</TooltipContent>
+				</Tooltip>
 			</div>
 		</div>
 	);

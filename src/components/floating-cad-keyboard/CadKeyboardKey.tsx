@@ -1,4 +1,9 @@
 import { Button } from "@/components/ui/button";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { CadKey } from "./keyboardTypes";
 import { cadKeyClassName } from "./keyboardUtils";
 
@@ -13,7 +18,7 @@ export function CadKeyboardKey({
 	onPress,
 	className,
 }: CadKeyboardKeyProps) {
-	return (
+	const button = (
 		<Button
 			className={`rounded-md cursor-pointer transition-all duration-150 active:scale-95 py-5 ${cadKeyClassName(keyConfig)}`}
 			variant="secondary"
@@ -114,5 +119,14 @@ export function CadKeyboardKey({
 		>
 			{keyConfig.label}
 		</Button>
+	);
+
+	if (!keyConfig.tooltip) return button;
+
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>{button}</TooltipTrigger>
+			<TooltipContent>{keyConfig.tooltip}</TooltipContent>
+		</Tooltip>
 	);
 }

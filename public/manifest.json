@@ -1,8 +1,8 @@
 {
 	"manifest_version": 3,
-	"name": "Rally for Onshape",
-	"version": "1.1.3",
-	"description": "Make Onshape faster, cleaner, and easier to use.",
+	"name": "Onshape Mitigator",
+	"version": "1.0.0",
+	"description": "Fork of Rally for Onshape: tooltips, collapsible sketch toolbar, configurable keyboard shortcuts, and AI-ready document context.",
 	"homepage_url": "https://github.com/RileyDavidson-Evans/onshape-plus",
 	"icons": {
 		"16": "icons/onshape-plus-main-logo-128.png",
@@ -11,7 +11,7 @@
 		"128": "icons/onshape-plus-main-logo-128.png"
 	},
 	"action": {
-		"default_title": "Rally for Onshape",
+		"default_title": "Onshape Mitigator",
 		"default_icon": {
 			"16": "icons/onshape-plus-main-logo-128.png",
 			"32": "icons/onshape-plus-main-logo-128.png"
@@ -39,10 +39,10 @@
 			"matches": ["https://*.onshape.com/*"]
 		}
 	],
-	"permissions": ["storage"],
+	"permissions": ["storage", "clipboardWrite"],
 	"browser_specific_settings": {
 		"gecko": {
-			"id": "onshape-plus@rileydavidson.dev",
+			"id": "onshape-mitigator@example.com",
 			"strict_min_version": "109.0",
 			"data_collection_permissions": {
 				"required": ["none"]

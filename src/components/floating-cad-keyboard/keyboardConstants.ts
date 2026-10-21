@@ -52,23 +52,29 @@ export const NUMBER_KEYS: CadKey[] = [
 		code: "Backspace",
 		keyCode: 8,
 		type: "action",
+		tooltip: "Delete the character before the cursor",
 	},
 ];
 
 export const UNIT_KEYS: CadKey[] = [
-	{ label: "mm", value: "mm", type: "unit" },
-	{ label: "cm", value: "cm", type: "unit" },
-	{ label: "m", value: "m", type: "unit" },
-	{ label: "in", value: "in", type: "unit" },
-	{ label: "ft", value: "ft", type: "unit" },
-	{ label: "deg", value: "deg", type: "unit" },
+	{ label: "mm", value: "mm", type: "unit", tooltip: "Millimeters" },
+	{ label: "cm", value: "cm", type: "unit", tooltip: "Centimeters" },
+	{ label: "m", value: "m", type: "unit", tooltip: "Meters" },
+	{ label: "in", value: "in", type: "unit", tooltip: "Inches" },
+	{ label: "ft", value: "ft", type: "unit", tooltip: "Feet" },
+	{ label: "deg", value: "deg", type: "unit", tooltip: "Degrees" },
 ];
 
 export const FUNCTION_KEYS: CadKey[] = [
-	{ label: "sin", value: "sin(", type: "function" },
-	{ label: "cos", value: "cos(", type: "function" },
-	{ label: "tan", value: "tan(", type: "function" },
-	{ label: "sqrt", value: "sqrt(", type: "function" },
+	{ label: "sin", value: "sin(", type: "function", tooltip: "Sine" },
+	{ label: "cos", value: "cos(", type: "function", tooltip: "Cosine" },
+	{ label: "tan", value: "tan(", type: "function", tooltip: "Tangent" },
+	{
+		label: "sqrt",
+		value: "sqrt(",
+		type: "function",
+		tooltip: "Square root",
+	},
 ];
 
 export const SYMBOL_KEYS: CadKey[] = [
@@ -80,6 +86,7 @@ export const SYMBOL_KEYS: CadKey[] = [
 		keyCode: 51,
 		modifiers: { shift: true },
 		type: "operator",
+		tooltip: "Variable reference (e.g. #width)",
 	},
 	{
 		label: "(",
@@ -135,8 +142,9 @@ export const SYMBOL_KEYS: CadKey[] = [
 		code: "Backspace",
 		keyCode: 8,
 		type: "action",
+		tooltip: "Delete the character before the cursor",
 	},
-	{ label: "π", value: "pi", type: "function" },
+	{ label: "π", value: "pi", type: "function", tooltip: "Pi (3.14159…)" },
 	{ label: ",", value: ",", key: ",", code: "Comma", keyCode: 188 },
 	{
 		label: ":",
@@ -153,6 +161,7 @@ export const SYMBOL_KEYS: CadKey[] = [
 		code: "Space",
 		keyCode: 32,
 		type: "action",
+		tooltip: "Insert a space",
 	},
 ];
 
@@ -163,6 +172,7 @@ export const COMMAND_KEYS: CadKey[] = [
 		code: "ArrowLeft",
 		keyCode: 37,
 		type: "action",
+		tooltip: "Move cursor left",
 	},
 	{
 		label: "→",
@@ -170,10 +180,30 @@ export const COMMAND_KEYS: CadKey[] = [
 		code: "ArrowRight",
 		keyCode: 39,
 		type: "action",
+		tooltip: "Move cursor right",
 	},
-	{ label: "Clear", key: "Clear", type: "action" },
-	{ label: "Esc", key: "Escape", code: "Escape", keyCode: 27, type: "action" },
-	{ label: "Enter", key: "Enter", code: "Enter", keyCode: 13, type: "primary" },
+	{
+		label: "Clear",
+		key: "Clear",
+		type: "action",
+		tooltip: "Clear the entire input",
+	},
+	{
+		label: "Esc",
+		key: "Escape",
+		code: "Escape",
+		keyCode: 27,
+		type: "action",
+		tooltip: "Cancel and close",
+	},
+	{
+		label: "Enter",
+		key: "Enter",
+		code: "Enter",
+		keyCode: 13,
+		type: "primary",
+		tooltip: "Confirm the value",
+	},
 ];
 
 export const TEXT_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
@@ -195,6 +225,7 @@ export const TEXT_SYMBOL_KEYS: CadKey[] = [
 		code: "Space",
 		keyCode: 32,
 		type: "action",
+		tooltip: "Insert a space",
 	},
 	{
 		label: "⌫",
@@ -202,5 +233,6 @@ export const TEXT_SYMBOL_KEYS: CadKey[] = [
 		code: "Backspace",
 		keyCode: 8,
 		type: "action",
+		tooltip: "Delete the character before the cursor",
 	},
 ];

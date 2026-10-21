@@ -26,7 +26,13 @@ export function PenSidebar() {
 		allAvailableTools,
 	} = useOnshapeBridge();
 
-	const [collapsed, setCollapsed] = useState(false);
+	const collapsed = settings.penSidebarCollapsed;
+	const setCollapsed = useCallback(
+		(v: boolean) => {
+			setSetting("penSidebarCollapsed", v);
+		},
+		[setSetting],
+	);
 	const [featureDialogVisible, setFeatureDialogVisible] = useState(false);
 
 	useEffect(() => {

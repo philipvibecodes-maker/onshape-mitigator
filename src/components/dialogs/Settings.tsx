@@ -25,7 +25,9 @@ import { OnshapeIcon } from "../shared/OnShapeIcon";
 import { ButtonGroup } from "../ui/button-group";
 import { Card, CardContent } from "../ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { AiAssistantConfig } from "./AiAssistantConfig";
 import { CanvasBackgroundCustomizer } from "./CanvasBackgroundCustomizer";
+import { KeyboardShortcutsConfig } from "./KeyboardShortcutsConfig";
 import { SmartActionsCustomizer } from "./SmartFloatingActionsConfiguration";
 import { ThemeCustomizer } from "./ThemeCustomizer";
 import { ToolbarQuickActionsConfig } from "./ToolbarQuickActionsConfig";
@@ -51,7 +53,7 @@ const links = [
 	},
 	{
 		label: "Buy Me a Coffee",
-		description: "Support development of Rally for Onshape.",
+		description: "Support development of the original Rally for Onshape.",
 		icon: Coffee,
 		href: BUY_ME_A_COFFEE_URL,
 		target: "_blank",
@@ -67,7 +69,7 @@ const floatingNumpadModes: {
 	{
 		value: "auto",
 		label: "Auto",
-		description: "Show only when Rally for Onshape detects tablet mode.",
+		description: "Show only when Onshape Mitigator detects tablet mode.",
 	},
 	{
 		value: "always",
@@ -125,7 +127,7 @@ export function SettingsDialog() {
 				<div className="relative z-10 p-5">
 					<DialogHeader className="mb-5">
 						<DialogTitle className="text-lg font-semibold text-card-foreground">
-							Welcome to Rally for Onshape
+							Welcome to Onshape Mitigator
 						</DialogTitle>
 
 						<DialogDescription className="text-sm text-muted-foreground">
@@ -204,6 +206,10 @@ export function SettingsDialog() {
 						<ToolbarQuickActionsConfig
 							availableToolsByMode={availableToolsByMode}
 						/>
+
+						<KeyboardShortcutsConfig />
+
+						<AiAssistantConfig />
 
 						<CanvasBackgroundCustomizer />
 

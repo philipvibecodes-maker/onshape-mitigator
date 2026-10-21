@@ -1,6 +1,9 @@
 import { SettingsDialog } from "./components/dialogs/Settings";
 import { FloatingNumpad } from "./components/floating-cad-keyboard";
+import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
+import { MiniToolbarTooltips } from "./components/MiniToolbarTooltips";
 import { PenSidebar } from "./components/PenSidebar";
+import { SketchToolbarCollapser } from "./components/SketchToolbarCollapser";
 import { SmartFloatingActions } from "./components/SmartFloatingActions";
 import { useExtensionSettings } from "./contexts/ExtensionSettingsContext";
 import { useOnshapeBridge } from "./contexts/OnshapeBridgeContext";
@@ -25,6 +28,9 @@ export function App() {
 
 			{renderFloatingNumberPad && <FloatingNumpad />}
 			{settings.smartActionsEnabled && <SmartFloatingActions />}
+			<SketchToolbarCollapser />
+			<MiniToolbarTooltips />
+			<KeyboardShortcuts />
 		</>
 	);
 }

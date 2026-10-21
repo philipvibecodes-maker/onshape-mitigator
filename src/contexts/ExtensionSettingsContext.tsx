@@ -66,6 +66,35 @@ export function ExtensionSettingsProvider({
 				entries,
 			) as OnshapePlusStorageSchema;
 
+			// Remap bindings that still hold a previous default to the new
+			// default, leaving user-customized bindings alone.
+			const legacyBindings: Record<string, string> = {
+				copyAiContext: "Alt+C",
+				toggleSketchToolbar: "Alt+T",
+			};
+			let bindingsMigrated = false;
+			const keyboardShortcuts = { ...settingsConfig.keyboardShortcuts };
+			for (const [action, legacy] of Object.entries(legacyBindings)) {
+				if (keyboardShortcuts[action] === legacy) {
+					keyboardShortcuts[action] =
+						DEFAULT_STORAGE_VALUES.keyboardShortcuts[action];
+					bindingsMigrated = true;
+				}
+			}
+			if (bindingsMigrated) {
+				settingsConfig.keyboardShortcuts = keyboardShortcuts;
+				void setStorageItem("keyboardShortcuts", keyboardShortcuts);
+			}
+
+			if (settingsConfig.aiChatbotUrl === "https://chatgpt.com/") {
+				settingsConfig.aiChatbotUrl =
+					DEFAULT_STORAGE_VALUES.aiChatbotUrl;
+				void setStorageItem(
+					"aiChatbotUrl",
+					DEFAULT_STORAGE_VALUES.aiChatbotUrl,
+				);
+			}
+
 			setSettings(settingsConfig);
 			setIsLoading(false);
 		}

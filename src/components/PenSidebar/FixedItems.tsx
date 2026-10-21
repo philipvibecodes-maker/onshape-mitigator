@@ -1,4 +1,5 @@
 import {
+	Bot,
 	ChevronDown,
 	ChevronUp,
 	Fullscreen,
@@ -7,7 +8,9 @@ import {
 	Shrink,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useOnshapeBridge } from "@/contexts/OnshapeBridgeContext";
 import { useSettingsDialog } from "@/contexts/SettingsDialogContext";
+import { copyAiContextToClipboard } from "@/core/aiContext";
 import { toggleFullscreen } from "@/core/utils";
 import { Button } from "../ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
@@ -23,6 +26,7 @@ export function FixedItems({
 	setOnshapeSideBarWidth: () => void;
 }) {
 	const { openSettings } = useSettingsDialog();
+	const { toolbarType, currentTool } = useOnshapeBridge();
 	const [isFullscreen, setIsFullscreen] = useState(false);
 
 	useEffect(() => {
@@ -87,7 +91,7 @@ export function FixedItems({
 						<CardHeader>
 							<CardTitle>Configuration</CardTitle>
 							<CardDescription>
-								Change the way Rally for Onshape works to best suit your
+								Change the way Onshape Mitigator works to best suit your
 								workflow. View links for the Github, Discord and more.
 							</CardDescription>
 						</CardHeader>
@@ -114,6 +118,33 @@ export function FixedItems({
 							<CardDescription>
 								Toggles the fullscreen onshape experience, give it a try to
 								experience onshape like a native app!
+							</CardDescription>
+						</CardHeader>
+					</Card>
+				</TooltipContent>
+			</Tooltip>
+
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button
+						variant="secondary"
+						size="icon"
+						className="h-10 w-10 shrink-0 cursor-pointer"
+						onClick={() =>
+							copyAiContextToClipboard({ toolbarType, currentTool })
+						}
+					>
+						<Bot className="h-5 w-5" />
+					</Button>
+				</TooltipTrigger>
+
+				<TooltipContent side="left">
+					<Card className="w-[350px]">
+						<CardHeader>
+							<CardTitle>Copy context for AI</CardTitle>
+							<CardDescription>
+								Copy a snapshot of this document, current tool, selection, and
+								feature list to share with an AI assistant.
 							</CardDescription>
 						</CardHeader>
 					</Card>

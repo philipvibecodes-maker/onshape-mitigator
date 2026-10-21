@@ -243,67 +243,81 @@ export function RadialContextMenu({
 						damping: 30,
 					}}
 				>
-					<Button
-						type="button"
-						size="icon"
-						variant="ghost"
-						aria-label={open ? "Close actions" : "Open actions"}
-						className={[
-							"os-plus-glass os-plus-glass-dark touch-none",
-							"h-full w-full rounded-full text-white",
-							"hover:bg-transparent",
-							"active:scale-95",
-						].join(" ")}
-						onPointerEnter={(event) => {
-							if (
-								event.pointerType === "mouse" ||
-								event.pointerType === "pen"
-							) {
-								cancelClose();
-								setOpen(true);
-							}
-						}}
-						onPointerDown={(event) => {
-							event.preventDefault();
-							event.stopPropagation();
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								type="button"
+								size="icon"
+								variant="ghost"
+								aria-label={open ? "Close actions" : "Open actions"}
+								className={[
+									"os-plus-glass os-plus-glass-dark touch-none",
+									"h-full w-full rounded-full text-white",
+									"hover:bg-transparent",
+									"active:scale-95",
+								].join(" ")}
+								onPointerEnter={(event) => {
+									if (
+										event.pointerType === "mouse" ||
+										event.pointerType === "pen"
+									) {
+										cancelClose();
+										setOpen(true);
+									}
+								}}
+								onPointerDown={(event) => {
+									event.preventDefault();
+									event.stopPropagation();
 
-							cancelClose();
+									cancelClose();
 
-							if (event.pointerType === "touch") {
-								lastTouchPointerDownRef.current = Date.now();
-								toggleOpen();
-							}
-						}}
-						onPointerUp={(event) => {
-							event.preventDefault();
-							event.stopPropagation();
-						}}
-						onClick={(event) => {
-							event.preventDefault();
-							event.stopPropagation();
+									if (event.pointerType === "touch") {
+										lastTouchPointerDownRef.current = Date.now();
+										toggleOpen();
+									}
+								}}
+								onPointerUp={(event) => {
+									event.preventDefault();
+									event.stopPropagation();
+								}}
+								onClick={(event) => {
+									event.preventDefault();
+									event.stopPropagation();
 
-							const justHandledTouch =
-								Date.now() - lastTouchPointerDownRef.current <
-								TOUCH_CLICK_IGNORE_MS;
+									const justHandledTouch =
+										Date.now() - lastTouchPointerDownRef.current <
+										TOUCH_CLICK_IGNORE_MS;
 
-							if (justHandledTouch) return;
+									if (justHandledTouch) return;
 
-							toggleOpen();
-						}}
-					>
-						<motion.span
-							animate={{
-								scale: open ? 1.25 : 1,
-							}}
-							transition={{
-								type: "spring",
-								stiffness: 500,
-								damping: 24,
-							}}
-						>
-							<Zap className={["h-5 w-5", "text-blue-300"].join(" ")} />
-						</motion.span>
-					</Button>
+									toggleOpen();
+								}}
+							>
+								<motion.span
+									animate={{
+										scale: open ? 1.25 : 1,
+									}}
+									transition={{
+										type: "spring",
+										stiffness: 500,
+										damping: 24,
+									}}
+								>
+									<Zap className={["h-5 w-5", "text-blue-300"].join(" ")} />
+								</motion.span>
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="right" className="z-50">
+							<Card className="w-[260px]">
+								<CardHeader>
+									<CardTitle>Quick Actions</CardTitle>
+									<CardDescription>
+										Context-sensitive actions for the current selection.
+									</CardDescription>
+								</CardHeader>
+							</Card>
+						</TooltipContent>
+					</Tooltip>
 				</motion.div>
 			</div>
 		</div>
