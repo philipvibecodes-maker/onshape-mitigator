@@ -1,11 +1,11 @@
 # Onshape Mitigator
 
-A fork of [**Rally for Onshape**](https://github.com/RileyDavidson-Evans/onshape-plus) (MIT) — the open-source browser extension by Riley Davidson-Evans — with additional quality-of-life features aimed at power users:
+A fork of [**Rally for Onshape**](https://github.com/RileyDavidson-Evans/onshape-plus) (MIT) — the open-source browser extension by Riley Davidson-Evans — with quality-of-life features aimed at making Onshape friendlier for newer and casual users:
 
-* **Instant tooltips on the `s` shortcut menu** — hovering an icon in Onshape's mini-toolbar immediately shows the command name (no OS tooltip delay), plus tooltips on extension icons that previously had none.
-* **Collapsible sketch panel** — the sketch options dialog (`Sketch 1 …`) can be collapsed to just its title bar while keeping the finish/cancel buttons usable.
+* **Instant tooltips on the `s` shortcut menu** — hovering an icon in Onshape's mini-toolbar immediately shows the command name (no OS tooltip delay), plus tooltips on extension icons that previously had none. Stock Onshape leaves you guessing what unlabeled icons do, which makes learning the tools harder than it needs to be.
+* **Collapsible sketch panel** — the sketch options dialog (`Sketch 1 …`) can be collapsed to just its title bar while keeping the finish/cancel buttons usable. On smaller screens the panel eats a real chunk of modeling space.
 * **Configurable keyboard shortcuts** — including one for the Onshape variables table, which stock Onshape cannot bind.
-* **One-click document context for AI assistants** — copies a Markdown snapshot of the current document state to the clipboard and optionally opens your chatbot of choice with the prompt pre-filled.
+* **One-click document context for AI assistants** — copies a Markdown snapshot of the current document state to the clipboard and optionally opens your chatbot of choice with the prompt pre-filled, so you can ask for help without describing your setup by hand.
 
 Everything else — the floating pen sidebar, floating numeric keypad, smart floating actions, toolbar quick actions, canvas backgrounds, themes, fullscreen mode — comes from Rally for Onshape. See the [upstream repository](https://github.com/RileyDavidson-Evans/onshape-plus) and its [README](https://github.com/RileyDavidson-Evans/onshape-plus#readme) for the full feature set and documentation.
 
