@@ -1,252 +1,106 @@
 # Onshape Mitigator
 
-> Fork of [Rally for Onshape](https://github.com/RileyDavidson-Evans/onshape-plus) (MIT). Original project by Riley Davidson-Evans.
+A fork of [**Rally for Onshape**](https://github.com/RileyDavidson-Evans/onshape-plus) (MIT) — the open-source browser extension by Riley Davidson-Evans — with additional quality-of-life features aimed at power users:
 
-Make Onshape faster, cleaner, and easier to use — plus additional tooling: tooltips on all extension icons, a collapsible sketch toolbar, configurable keyboard shortcuts (including opening the variables table), and one-click document context export for AI assistants.
+* **Instant tooltips on the `s` shortcut menu** — hovering an icon in Onshape's mini-toolbar immediately shows the command name (no OS tooltip delay), plus tooltips on extension icons that previously had none.
+* **Collapsible sketch panel** — the sketch options dialog (`Sketch 1 …`) can be collapsed to just its title bar while keeping the finish/cancel buttons usable.
+* **Configurable keyboard shortcuts** — including one for the Onshape variables table, which stock Onshape cannot bind.
+* **One-click document context for AI assistants** — copies a Markdown snapshot of the current document state to the clipboard and optionally opens your chatbot of choice with the prompt pre-filled.
+
+Everything else — the floating pen sidebar, floating numeric keypad, smart floating actions, toolbar quick actions, canvas backgrounds, themes, fullscreen mode — comes from Rally for Onshape. See the [upstream repository](https://github.com/RileyDavidson-Evans/onshape-plus) and its [README](https://github.com/RileyDavidson-Evans/onshape-plus#readme) for the full feature set and documentation.
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-![Privacy](https://img.shields.io/badge/Data%20Collection-None-success)
 ![Telemetry](https://img.shields.io/badge/Telemetry-None-success)
-![Open Source](https://img.shields.io/badge/Open%20Source-Yes-brightgreen)
-
-Open source, publicly auditable, and backed by GitHub security tooling including CodeQL, Dependabot, Secret Scanning, and Dependency Review.
-
-Rally for Onshape is an open-source browser extension that enhances the Onshape experience with thoughtful UI improvements, touch and pen optimizations, productivity tools, and quality-of-life features designed for both tablet and desktop workflows.
-
-Whether you're using a mouse, trackpad, touchscreen, or stylus, Rally for Onshape helps reduce friction and streamline common modeling tasks while preserving the workflows you already know.
-
-Available for Chrome, Microsoft Edge, Firefox, Safari on iPad, and Android tablets.
 
 ---
 
-## Trusted & Transparent
+## What's new in this fork
 
-* ✅ Open Source
-* ✅ Public GitHub Releases
-* ✅ Public Source Code
-* ✅ No Analytics
-* ✅ No Telemetry
-* ✅ No External Data Collection
-* ✅ No Account Required
-* ✅ Security Documentation Available
+### Instant tooltips for the `s` shortcut menu
 
-Learn more:
+Onshape's mini-toolbar (the popup shown when you press `s`) renders its icons without any tooltip text. Onshape Mitigator watches the menu and shows a custom tooltip with the command name the instant you hover an icon — useful for quickly verifying you're about to click the right command. Extension-owned icons (numpad keys, CAD keyboard header buttons, radial-menu center button) also gained tooltips.
 
-* [Security Policy](./SECURITY.md)
-* [Security Overview](./docs/security-overview.md)
-* [Build & Verify Guide](./docs/build-and-verify.md)
-* [GitHub Security Dashboard](https://github.com/RileyDavidson-Evans/onshape-plus/security)
----
+### Collapsible sketch panel
 
-## Why Rally for Onshape?
+While editing a sketch, Onshape shows a persistent options panel (sketch plane, imprinting/constraints/expressions/errors checkboxes). Onshape Mitigator adds a chevron button to the panel's title bar that collapses everything below the header — the **✓ finish** and **✗ cancel** buttons remain visible and usable. The collapsed state is persisted across sessions.
 
-Onshape is a powerful CAD platform. Rally for Onshape builds on that foundation by adding optional enhancements that improve accessibility, efficiency, and usability without requiring changes to your existing workflow.
+### Configurable keyboard shortcuts
 
-Features are designed to feel native to Onshape and integrate seamlessly into the existing interface.
+A new **Keyboard Shortcuts** section in the settings dialog lets you rebind extension actions by pressing the desired key combination (Backspace clears, Escape cancels).
+
+Default bindings:
+
+| Shortcut      | Action                                              |
+| ------------- | --------------------------------------------------- |
+| `Alt+V`       | Toggle the Onshape **variables table**              |
+| `Alt+B`       | Collapse / expand the Onshape Mitigator sidebar     |
+| `Alt+Shift+T` | Collapse / expand the sketch options panel          |
+| `Alt+Shift+C` | Copy document context for AI (+ open chatbot)       |
+| *(unbound)*   | Open extension settings                             |
+
+`Alt+Shift+…` is used where Onshape already owns the plain `Alt` combination (e.g. `Alt+T` toggles the element panel, `Alt+C` opens command search).
+
+### AI-ready document context
+
+Clicking the **robot button** in the sidebar (or pressing `Alt+Shift+C`) collects a snapshot of the current document as Markdown:
+
+* Document URL and IDs (document, workspace/version/microversion, element)
+* Document and element names, current toolbar mode, active tool
+* Whether a feature dialog is open
+* Current selections (via Onshape's Angular selection service)
+* Feature list and variable-table contents, where reachable in the DOM
+
+The snapshot ends with a note telling the assistant you'll follow up with your actual question, then is copied to the clipboard and your configured chatbot opens in a new tab.
+
+The **AI Assistant** settings section configures the chatbot URL and whether it opens automatically. If the URL contains `{context}`, the Markdown is URL-encoded into it — e.g. `https://chatgpt.com/?q={context}` sends the context as the first message (the follow-up note prevents premature answers). Without a placeholder, the chatbot opens and you paste with `Ctrl+V`.
+
+> **Privacy note:** context collection is fully local and only happens when you trigger it. The only outbound action is opening the chatbot URL you configured — nothing is sent anywhere else.
 
 ---
 
 ## Installation
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/onshape-plus/hanbmgaepnkkmmgafdpfocnjhfccckoh?authuser=0&hl=en)
-[![Microsoft Edge](https://img.shields.io/badge/Microsoft%20Edge-Install-0078D7?logo=microsoftedge&logoColor=white)](https://microsoftedge.microsoft.com/addons/detail/onshape-plus/ogbpbkkaednceiocabdfmmepdbpgonko)
-[![iPad App Store](https://img.shields.io/badge/iPad%20App%20Store-Install-0D96F6?logo=appstore&logoColor=white)](https://apps.apple.com/us/app/onshape-plus/id6777179140)
-[![Firefox Add-ons](https://img.shields.io/badge/Firefox%20Add--ons-Install-FF7139?logo=firefoxbrowser&logoColor=white)](https://addons.mozilla.org/en-CA/firefox/addon/rally-for-onshape/)
-[![Android Tablet Install](https://img.shields.io/badge/Android%20Tablet-Install%20Guide-3DDC84?logo=android&logoColor=white)](https://github.com/RileyDavidson-Evans/onshape-plus/blob/main/docs/AndroidTabletInstall.md)
+This fork is not published to a store — load it unpacked:
 
-Chrome Web Store installs also work on Microsoft Edge.
+```bash
+npm install
+npm run build
+```
 
----
+Then in Chrome/Edge: `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select the `dist/` directory. Open an Onshape document and the sidebar will appear.
 
-## Features
-
-### Touch & Pen Optimized
-
-Designed to improve the experience on tablets and touch-enabled devices.
-
-* Touch-friendly interface enhancements
-* Quick-access floating toolbar
-* Improved stylus and pen workflows
-* Faster access to common modeling actions
-* Optimized tablet navigation and interaction patterns
-
-### Productivity Enhancements
-
-Reduce repetitive actions and keep common tools within reach.
-
-* Floating numeric keypad for dimension entry
-* Quick access to frequently used commands
-* Dynamic command layouts
-* Context-aware actions
-* Persistent UI positioning and preferences
-
-### Onshape Mitigator additions
-
-* Tooltips on extension icons that previously had none
-* Collapsible Onshape sketch toolbar (Alt+T by default)
-* Configurable keyboard shortcuts — open the variables table (Alt+V), toggle the sidebar (Alt+B), copy AI context (Alt+C), and more; remap in Settings
-* Copy document context (IDs, element, active tool, selections, feature list, variables) to the clipboard for AI chatbots, with optional auto-open of a configurable chatbot URL
-
-### Seamless Integration
-
-Built to complement Onshape rather than replace it.
-
-* Native-feeling interface additions
-* Dark mode support
-* Lightweight overlay architecture
-* Minimal visual disruption
-* Consistent Onshape-inspired styling
-
-### Open & Transparent
-
-Rally for Onshape is developed in the open and available for anyone to inspect, audit, and contribute to.
-
-* Fully open source
-* No tracking or telemetry
-* No account required
-* Community-driven development
-* Public GitHub releases and source code
-
----
-
-## Screenshots
-
-![Rally for Onshape Screenshot](./media/chrome%20toolbar%20highlight.png)
-![Rally for Onshape Screenshot](./media/Fullscreen%20chrome%20promo.png)
-![Rally for Onshape Screenshot](./media/Chrome%20floating%20number%20pad%20highlight.png)
-
----
-
-## Supported Platforms
-
-| Platform       | Status         |
-| -------------- | -------------- |
-| Chrome         | ✅ Supported    |
-| Microsoft Edge | ✅ Supported    |
-| Safari (iPad)  | ✅ Supported    |
-| Firefox        | ✅ Supported    |
-| Android Tablet | ✅ Supported    |
-| Safari (macOS) | 📋 Planned     |
-
----
-
-## Security & Privacy
-
-Rally for Onshape is designed to operate locally within your browser.
-
-* No telemetry
-* No analytics
-* No advertising
-* No external data collection
-* No account required
-
-The extension stores only local user preferences using browser extension storage.
-
-### Security Documentation
-
-For organizations evaluating Rally for Onshape, the following documentation is available:
-
-* [Security Policy](./SECURITY.md)
-* [Security Overview](./docs/security-overview.md)
-* [Build & Verify Guide](./docs/build-and-verify.md)
-* [GitHub Security Dashboard](https://github.com/RileyDavidson-Evans/onshape-plus/security)
-
-### Security Tooling
-
-Rally for Onshape uses GitHub's built-in security tooling, including:
-
-* CodeQL Static Analysis
-* Dependabot Vulnerability Monitoring
-* Dependabot Security Updates
-* Dependency Graph Analysis
-* Secret Scanning
-* Dependency Review
-* Public Security Documentation
-
-### Release Verification
-
-Every published release corresponds to a public GitHub release tag, allowing organizations to:
-
-* Review the exact source code associated with a release
-* Build the extension locally from source
-* Verify permissions and functionality
-* Perform independent security reviews before deployment
-
----
-
-## Technology
-
-Built with:
-
-* React
-* TypeScript
-* Vite
-* Tailwind CSS
-* Chrome Manifest V3
-* Safari Web Extensions
+For the published upstream extension, see the [Rally for Onshape Chrome Web Store listing](https://chromewebstore.google.com/detail/rally-for-onshape/hanbmgaepnkkmmgafdpfocnjhfccckoh).
 
 ---
 
 ## Development
 
-### Install Dependencies
-
 ```bash
-npm install
+npm install          # install dependencies
+npm run build        # build the extension into dist/
+npm run safari:build # build the Safari version
+npm run safari:sync  # sync Safari assets
 ```
 
-### Build
-
-```bash
-npm run build
-```
-
-### Build Safari Version
-
-```bash
-npm run safari:build
-```
-
-### Sync Safari Assets
-
-```bash
-npm run safari:sync
-```
+Built with React, TypeScript, Vite, Tailwind CSS, and Manifest V3. A page-context bridge (`public/onshape-page-bridge.js`) taps Onshape's AngularJS injector for selections, commands, and events; settings persist in `browser.storage.local`.
 
 ---
 
-## Project Structure
+## Security & privacy
 
-```text
-public/
-├─ manifest.json
-├─ onshape-page-bridge.js
+The extension runs locally in your browser: no telemetry, no analytics, no account required. Settings are stored only in browser extension storage. The AI-context feature collects document state solely on explicit user action and transmits it only by opening the chatbot URL you configured.
 
-src/
-├─ components/
-├─ hooks/
-├─ services/
-├─ styles/
-├─ core/
-└─ main.tsx
+Upstream's security documentation still applies:
 
-apps/
-└─ safari/
-```
-
----
-
-## Contributing
-
-Bug reports, feature requests, discussions, and pull requests are always welcome.
-
-If you have ideas for improving tablet workflows, touch interactions, accessibility, or productivity within Onshape, we'd love to hear from you.
+* [Security Policy](./SECURITY.md)
+* [Security Overview](./docs/security-overview.md)
+* [Build & Verify Guide](./docs/build-and-verify.md)
 
 ---
 
 ## Disclaimer
 
-Rally for Onshape is an independent community project and is not affiliated with, endorsed by, or sponsored by Onshape or PTC.
+Onshape Mitigator is an independent community project and is not affiliated with, endorsed by, or sponsored by Onshape, PTC, or the Rally for Onshape project.
 
 All trademarks are the property of their respective owners.
 
@@ -254,4 +108,4 @@ All trademarks are the property of their respective owners.
 
 ## License
 
-Licensed under the MIT License.
+Licensed under the MIT License, same as upstream.
