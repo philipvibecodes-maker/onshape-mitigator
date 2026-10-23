@@ -46,7 +46,9 @@ function getOrCreateBackgroundLayer(canvas: HTMLCanvasElement) {
 	}
 
 	canvas.style.position = canvas.style.position || "relative";
-	canvas.style.zIndex = "1";
+	// Keep the canvas in Onshape's normal paint order so native editors
+	// (including .dimension-edit) remain above it. The preceding background
+	// layer is already painted behind this positioned canvas.
 
 	return layer;
 }
@@ -58,16 +60,17 @@ export function applyCanvasBackground(background: CanvasBackground) {
 	const canvases = document.querySelectorAll<HTMLCanvasElement>("canvas");
 
 	for (const canvas of canvases) {
-		const layer = getOrCreateBackgroundLayer(canvas);
-		if (!layer) continue;
-
 		if (!url) {
 			document
 				.querySelector("#viewerdiv")
 				?.classList.remove("canvas-bg-enabled");
-			layer.remove();
+			canvas.parentElement
+				?.querySelector(`:scope > .${BACKGROUND_LAYER_CLASS}`)
+				?.remove();
 			continue;
 		}
+		const layer = getOrCreateBackgroundLayer(canvas);
+		if (!layer) continue;
 		document.querySelector("#viewerdiv")?.classList.add("canvas-bg-enabled");
 
 		layer.style.backgroundImage = `url("${url}")`;
