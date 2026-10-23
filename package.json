@@ -24,7 +24,7 @@
 		"@vitejs/plugin-react": "^6.0.2",
 		"typescript": "^6.0.3",
 		"vite": "^8.0.14",
-		"web-ext": "^10.4.0"
+		"web-ext": "^10.8.0"
 	},
 	"dependencies": {
 		"@fontsource-variable/geist": "^5.2.9",
