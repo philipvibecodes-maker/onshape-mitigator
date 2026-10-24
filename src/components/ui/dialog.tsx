@@ -1,6 +1,6 @@
 import { XIcon } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
-import type * as React from "react";
+import * as React from "react";
 
 import { Button } from "@/components/ui/button";
 import { usePortalContainer } from "@/extensions/PortalContainerContext";
@@ -65,10 +65,12 @@ function DialogContent({
 	className,
 	children,
 	showCloseButton = true,
+	onKeyDown,
 	...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
 	showCloseButton?: boolean;
 }) {
+	const closeRef = React.useRef<HTMLButtonElement>(null);
 	return (
 		<DialogPortal>
 			<DialogOverlay>
@@ -82,21 +84,38 @@ function DialogContent({
 							className,
 						)}
 						{...props}
+						onKeyDown={(event) => {
+							onKeyDown?.(event);
+							// Isolated editable keys stay in this shadow tree, so Radix's
+							// document Escape listener cannot handle their local copy.
+							if (
+								event.key !== "Escape" ||
+								event.nativeEvent.composed ||
+								event.defaultPrevented
+							)
+								return;
+							props.onEscapeKeyDown?.(event.nativeEvent);
+							if (!event.defaultPrevented) {
+								event.preventDefault();
+								closeRef.current?.click();
+							}
+						}}
 					>
 						{children}
 
-						{showCloseButton && (
-							<DialogPrimitive.Close data-slot="dialog-close" asChild>
-								<Button
-									variant="ghost"
-									className="absolute right-2 top-2 cursor-pointer"
-									size="icon-sm"
-								>
-									<XIcon />
-									<span className="sr-only">Close</span>
-								</Button>
-							</DialogPrimitive.Close>
-						)}
+						<DialogPrimitive.Close data-slot="dialog-close" asChild>
+							<Button
+								ref={closeRef}
+								hidden={!showCloseButton}
+								style={showCloseButton ? undefined : { display: "none" }}
+								variant="ghost"
+								className="absolute right-2 top-2 cursor-pointer"
+								size="icon-sm"
+							>
+								<XIcon />
+								<span className="sr-only">Close</span>
+							</Button>
+						</DialogPrimitive.Close>
 					</DialogPrimitive.Content>
 				</div>
 			</DialogOverlay>

@@ -1,21 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-	fireInputEvents,
-	pressKey,
-	setNativeValue,
-	suppressVirtualKeyboard,
-} from "@/core/utils";
+import { suppressVirtualKeyboard } from "@/core/utils";
 import { TEXT_ROWS } from "./keyboardConstants";
-import {
-	ACTION_DELAY,
-	AUTO_HIDE_DELAY,
-	type CadKey,
-	type KeyboardMode,
-	type Position,
-} from "./keyboardTypes";
+import type { CadKey, KeyboardMode, Position } from "./keyboardTypes";
 import {
 	getKeyboardPosition,
-	hasKeyboardModifiers,
 	isEditableInput,
 	isTypingTarget,
 } from "./keyboardUtils";
@@ -23,6 +11,7 @@ import {
 export function useFloatingCadKeyboard() {
 	const keyboardRef = useRef<HTMLDivElement | null>(null);
 	const activeInputRef = useRef<HTMLElement | null>(null);
+	const focusFrameRef = useRef<number | null>(null);
 
 	const [isVisible, setIsVisible] = useState(false);
 	const [position, setPosition] = useState<Position>({ left: 0, top: 0 });
@@ -46,43 +35,65 @@ export function useFloatingCadKeyboard() {
 		);
 	}, [isShift]);
 
+	const cancelFocusFrame = useCallback(() => {
+		if (focusFrameRef.current !== null) {
+			cancelAnimationFrame(focusFrameRef.current);
+			focusFrameRef.current = null;
+		}
+	}, []);
+
 	const hideKeyboard = useCallback(() => {
+		cancelFocusFrame();
 		setIsVisible(false);
 		activeInputRef.current = null;
 		setMode("numbers");
 		setIsShift(false);
-	}, []);
+	}, [cancelFocusFrame]);
 
-	const handleFocusIn = useCallback((e: FocusEvent) => {
-		const target = e.target;
-		const keyboard = keyboardRef.current;
+	const handleFocusIn = useCallback(
+		(e: FocusEvent) => {
+			const target = e.target;
+			const keyboard = keyboardRef.current;
 
-		if (!isTypingTarget(target)) return;
-		if (keyboard?.contains(target)) return;
+			if (!isTypingTarget(target)) return;
+			if (keyboard?.contains(target)) return;
 
-		activeInputRef.current = target;
+			cancelFocusFrame();
+			activeInputRef.current = target;
 
-		target.addEventListener("focusout", () => {
-			hideKeyboard();
-		});
-
-		requestAnimationFrame(() => {
-			setPosition(getKeyboardPosition(target, keyboardRef.current));
-			setIsVisible(true);
-		});
-	}, []);
+			focusFrameRef.current = requestAnimationFrame(() => {
+				focusFrameRef.current = null;
+				if (
+					!target.isConnected ||
+					document.activeElement !== target ||
+					activeInputRef.current !== target
+				)
+					return;
+				setPosition(getKeyboardPosition(target, keyboardRef.current));
+				setIsVisible(true);
+			});
+		},
+		[cancelFocusFrame],
+	);
 
 	useEffect(() => {
 		const cleanupKeyboardSuppression = suppressVirtualKeyboard();
 
+		const handleFocusOut = (event: FocusEvent) => {
+			if (event.target === activeInputRef.current) hideKeyboard();
+		};
 		window.addEventListener("focusin", handleFocusIn, true);
+		window.addEventListener("focusout", handleFocusOut, true);
 
 		return () => {
 			cleanupKeyboardSuppression();
 
 			window.removeEventListener("focusin", handleFocusIn, true);
+			window.removeEventListener("focusout", handleFocusOut, true);
+			cancelFocusFrame();
+			activeInputRef.current = null;
 		};
-	}, [handleFocusIn]);
+	}, [handleFocusIn, hideKeyboard, cancelFocusFrame]);
 
 	const dispatchKeyboardKey = useCallback((keyConfig: CadKey) => {
 		const el = activeInputRef.current;
@@ -106,75 +117,53 @@ export function useFloatingCadKeyboard() {
 		el.dispatchEvent(new KeyboardEvent("keyup", eventInit));
 	}, []);
 
-	const insertText = useCallback((text: string) => {
-		const el = activeInputRef.current;
-		if (!el) return;
-
-		if (isEditableInput(el)) {
-			const start = el.selectionStart ?? el.value.length;
-			const end = el.selectionEnd ?? el.value.length;
-			const oldValue = el.value ?? "";
-			const newValue = oldValue.slice(0, start) + text + oldValue.slice(end);
-			const nextPos = start + text.length;
-
-			setNativeValue(el, newValue);
-			el.setSelectionRange?.(nextPos, nextPos);
-			fireInputEvents(el, "insertText", text);
-			return;
-		}
-
-		if (el.isContentEditable) {
-			document.execCommand("insertText", false, text);
-		}
-	}, []);
-
-	const deleteBackward = useCallback(() => {
-		const el = activeInputRef.current;
-		if (!el) return;
-
-		if (isEditableInput(el)) {
-			const start = el.selectionStart ?? el.value.length;
-			const end = el.selectionEnd ?? el.value.length;
-			const oldValue = el.value ?? "";
-
-			let newValue: string;
-			let nextPos: number;
-
-			if (start === end && start > 0) {
-				newValue = oldValue.slice(0, start - 1) + oldValue.slice(end);
-				nextPos = start - 1;
-			} else {
-				newValue = oldValue.slice(0, start) + oldValue.slice(end);
-				nextPos = start;
+	// execCommand is used deliberately: value assignment and synthetic input events
+	// do not enter the browser's text undo history. Native input events from these
+	// editing commands also notify Onshape without duplicate synthetic input events.
+	const editText = useCallback(
+		(command: "insertText" | "delete", text?: string) => {
+			const el = activeInputRef.current;
+			if (!el || (isEditableInput(el) && (el.readOnly || el.disabled))) return;
+			const inputType =
+				command === "insertText" ? "insertText" : "deleteContentBackward";
+			if (
+				!el.dispatchEvent(
+					new InputEvent("beforeinput", {
+						bubbles: true,
+						composed: true,
+						cancelable: true,
+						inputType,
+						data: text ?? null,
+					}),
+				)
+			)
+				return;
+			if (document.execCommand(command, false, text)) {
+				el.dispatchEvent(new Event("change", { bubbles: true }));
 			}
+		},
+		[],
+	);
 
-			setNativeValue(el, newValue);
-			el.setSelectionRange?.(nextPos, nextPos);
-			fireInputEvents(el, "deleteContentBackward", null);
-			return;
-		}
-
-		if (el.isContentEditable) {
-			document.execCommand("delete");
-		}
-	}, []);
-
+	const insertText = useCallback(
+		(text: string) => editText("insertText", text),
+		[editText],
+	);
+	const deleteBackward = useCallback(() => editText("delete"), [editText]);
 	const clearInput = useCallback(() => {
 		const el = activeInputRef.current;
 		if (!el) return;
-
 		if (isEditableInput(el)) {
-			setNativeValue(el, "");
-			el.setSelectionRange?.(0, 0);
-			fireInputEvents(el, "deleteContentBackward", null);
-			return;
+			el.select();
+		} else if (el.isContentEditable) {
+			const range = document.createRange();
+			range.selectNodeContents(el);
+			const selection = window.getSelection();
+			selection?.removeAllRanges();
+			selection?.addRange(range);
 		}
-
-		if (el.isContentEditable) {
-			document.execCommand("selectAll");
-			document.execCommand("delete");
-		}
-	}, []);
+		editText("delete");
+	}, [editText]);
 
 	const moveCaret = useCallback(
 		(direction: "left" | "right", shiftKey = false) => {
@@ -182,11 +171,16 @@ export function useFloatingCadKeyboard() {
 			if (!el) return;
 
 			if (isEditableInput(el) && !shiftKey) {
-				const pos = el.selectionStart ?? el.value.length;
+				const start = el.selectionStart ?? el.value.length;
+				const end = el.selectionEnd ?? start;
 				const nextPos =
 					direction === "left"
-						? Math.max(0, pos - 1)
-						: Math.min(el.value.length, pos + 1);
+						? start === end
+							? Math.max(0, start - 1)
+							: start
+						: start === end
+							? Math.min(el.value.length, end + 1)
+							: end;
 
 				el.setSelectionRange?.(nextPos, nextPos);
 				return;
@@ -239,9 +233,6 @@ export function useFloatingCadKeyboard() {
 
 				if (keyConfig.key === "Enter" || keyConfig.key === "Escape") {
 					activeInputRef.current?.blur();
-					window.setTimeout(() => {
-						hideKeyboard();
-					}, ACTION_DELAY);
 				}
 
 				return;
@@ -258,7 +249,6 @@ export function useFloatingCadKeyboard() {
 			}
 
 			if (keyConfig.value) {
-				console.log("Triggering here");
 				dispatchKeyboardKey(keyConfig);
 				insertText(keyConfig.value);
 
@@ -275,7 +265,7 @@ export function useFloatingCadKeyboard() {
 			clearInput,
 			deleteBackward,
 			dispatchKeyboardKey,
-			hideKeyboard,
+			insertText,
 			isShift,
 			mode,
 			moveCaret,

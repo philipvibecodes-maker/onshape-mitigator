@@ -87,7 +87,7 @@ export function SketchToolbarCollapser() {
 		? {
 				position: "fixed",
 				top: effectiveAnchor.top + 2,
-				left: effectiveAnchor.right - 26,
+				left: effectiveAnchor.right + 4,
 			}
 		: { position: "fixed", top: 120, left: 560 };
 
