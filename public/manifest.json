@@ -20,6 +20,11 @@
 	"content_scripts": [
 		{
 			"matches": ["https://*.onshape.com/*"],
+			"js": ["keyboard-guard.js"],
+			"run_at": "document_start"
+		},
+		{
+			"matches": ["https://*.onshape.com/*"],
 			"js": ["assets/main.js"],
 			"run_at": "document_idle"
 		}

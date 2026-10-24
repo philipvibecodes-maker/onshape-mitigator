@@ -1,0 +1,31 @@
+<!doctype html>
+<html><head>
+<script src="/keyboard-guard.js"></script>
+<style>
+#feature-dialog { position: absolute; left: 200px; top: 100px; width: 300px; }
+.ns-dialog-header { height: 32px; background: #ddd; display:flex; justify-content:flex-end; }
+.ns-dialog-header button { width:28px; padding:0; }
+#native-input { position:absolute; top:200px; left:200px; }
+#native-area { position:absolute; top:250px; left:200px; }
+</style>
+</head><body>
+<div id="feature-dialog"><div class="feature-dialog-main"><div class="ns-dialog-header">
+<button id="finish">✓</button><button id="cancel">✕</button>
+</div><div id="panel-content">Sketch panel</div></div></div>
+<input id="native-input" aria-label="Native filter"><textarea id="native-area" aria-label="Native textarea"></textarea>
+<script>
+window.nativeKeys = [];
+for (const type of ["keydown", "keypress", "keyup"]) {
+  window.addEventListener(type, e => {
+    if (["l", "d", "s"].includes(e.key) && !["INPUT", "TEXTAREA"].includes(e.target.tagName)) {
+      window.nativeKeys.push(type + ":" + e.key);
+      if (type === "keydown") e.preventDefault();
+    }
+  }, true);
+}
+document.querySelector("#cancel").onclick = () => document.body.dataset.cancelled = "true";
+document.querySelector("#finish").onclick = () => document.body.dataset.finished = "true";
+window.chrome = { runtime: { getURL: () => "/tests/fixture/empty-bridge.js" } };
+</script>
+<script type="module" src="./boot.ts"></script>
+</body></html>

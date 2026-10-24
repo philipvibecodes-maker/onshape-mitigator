@@ -33,3 +33,6 @@ xcuserdata/
 # Environment files
 .env
 .env.local
+# Test artifacts
+test-results/
+playwright-report/

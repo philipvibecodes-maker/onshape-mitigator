@@ -12,18 +12,25 @@
 		"firefox:lint": "web-ext lint --source-dir dist",
 		"firefox:run": "web-ext run --source-dir dist",
 		"firefox:build": "web-ext build --source-dir dist",
-		"firefox:sign": "web-ext sign --source-dir dist"
+		"firefox:sign": "web-ext sign --source-dir dist",
+		"test": "vitest run",
+		"test:unit": "vitest run",
+		"test:e2e": "playwright test"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.16",
+		"@playwright/test": "^1.64.1",
+		"@testing-library/react": "^16.3.3",
 		"@types/firefox-webext-browser": "^143.0.0",
 		"@types/node": "^25.9.1",
 		"@types/react": "^19.2.15",
 		"@types/react-dom": "^19.2.3",
 		"@types/webextension-polyfill": "^0.12.5",
 		"@vitejs/plugin-react": "^6.0.2",
+		"jsdom": "^29.1.1",
 		"typescript": "^6.0.3",
 		"vite": "^8.0.14",
+		"vitest": "^5.0.5",
 		"web-ext": "^10.8.0"
 	},
 	"dependencies": {
