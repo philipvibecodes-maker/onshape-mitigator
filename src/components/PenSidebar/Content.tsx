@@ -1,4 +1,4 @@
-import { LoaderCircle, Settings, XCircle } from "lucide-react";
+import { Bot, LoaderCircle, Power, Settings, XCircle } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { OnshapeIcon } from "@/components/shared/OnShapeIcon";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { copyAiContextToClipboard } from "@/core/aiContext";
+import { setStorageItem } from "@/storage/extensionStorage";
 import { useSettingsDialog } from "@/contexts/SettingsDialogContext";
 import { executeOnshapeShortcutCommand, pressKey } from "@/core/utils";
 import {
@@ -47,6 +49,48 @@ export function PenSidebarMainContent({
 
 	return (
 		<>
+			<SidebarDivider />
+
+			<div className="grid grid-cols-2 justify-items-center gap-1 px-2">
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="secondary"
+							size="icon"
+							className="h-10 w-10 shrink-0 cursor-pointer"
+							aria-label="Copy context for AI"
+							onClick={() =>
+								copyAiContextToClipboard({ toolbarType, currentTool })
+							}
+						>
+							<Bot className="h-5 w-5" />
+						</Button>
+					</TooltipTrigger>
+
+					<TooltipContent side="left">
+						<Card className="w-[350px]">
+							<CardHeader>
+								<CardTitle>Copy context for AI</CardTitle>
+								<CardDescription>
+									Copy a snapshot of this document, current tool, selection, and
+									feature list to share with an AI assistant.
+								</CardDescription>
+							</CardHeader>
+						</Card>
+					</TooltipContent>
+				</Tooltip>
+
+				<Button
+					variant="secondary"
+					size="icon"
+					className="h-10 w-10 cursor-pointer"
+					aria-label="Disable extension"
+					title="Disable extension on all Onshape tabs. Pages reload to apply the change."
+					onClick={() => void setStorageItem("extensionEnabled", false)}
+				>
+					<Power className="h-5 w-5" />
+				</Button>
+			</div>
 			<SidebarDivider />
 
 			<div className="grid grid-cols-2 justify-items-center gap-1 px-2">

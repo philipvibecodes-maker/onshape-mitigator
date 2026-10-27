@@ -12,7 +12,7 @@ import { shouldUseFloatingNumpad } from "./core/settings";
 
 export function App() {
 	const { isDocumentLoaded } = useOnshapeBridge();
-	const menuOpen = useExtensionMenu();
+	const { open: menuOpen, closeMenu } = useExtensionMenu();
 	const { settings } = useExtensionSettings();
 
 	if (!isDocumentLoaded) {
@@ -25,7 +25,7 @@ export function App() {
 
 	return (
 		<>
-			{menuOpen && <PenSidebar />}
+			{menuOpen && <PenSidebar onHide={closeMenu} />}
 			<SettingsDialog />
 
 			{renderFloatingNumberPad && !menuOpen && <FloatingNumpad />}

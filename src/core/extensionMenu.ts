@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import browser from "webextension-polyfill";
 
 export const TOGGLE_EXTENSION_MENU = "onshape-mitigator:toggle-menu";
@@ -21,5 +21,6 @@ export function useExtensionMenu() {
 		return () => browser.runtime.onMessage.removeListener(onMessage);
 	}, []);
 
-	return open;
+	const closeMenu = useCallback(() => setOpen(false), []);
+	return { open, closeMenu };
 }
