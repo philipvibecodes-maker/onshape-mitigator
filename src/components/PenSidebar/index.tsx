@@ -39,7 +39,7 @@ export function PenSidebar() {
 		const featureDialogParent = document.querySelector("#content-div");
 
 		if (featureDialogParent) {
-			watchElementPresence(
+			return watchElementPresence(
 				"#feature-dialog",
 				(isPresent) => {
 					setFeatureDialogVisible(isPresent);

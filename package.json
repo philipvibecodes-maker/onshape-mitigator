@@ -15,7 +15,8 @@
 		"firefox:sign": "web-ext sign --source-dir dist",
 		"test": "vitest run",
 		"test:unit": "vitest run",
-		"test:e2e": "playwright test"
+		"test:e2e": "playwright test",
+		"test:extension": "npm run build && playwright test --config tests/extension/playwright.config.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.16",

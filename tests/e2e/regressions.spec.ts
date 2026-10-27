@@ -107,3 +107,42 @@ for (const selector of ["#native-input", "#native-area"]) {
 		});
 	}
 }
+
+test("extension icon toggles the menu; disable persists and can be reversed", async ({
+	page,
+}) => {
+	const menu = page.locator("#os-pen-shortcut-sidebar");
+	await expect(menu).toHaveCount(0);
+	await page.evaluate(() => (window as any).clickExtensionIcon());
+	await expect(menu).toBeVisible();
+	await page.evaluate(() => (window as any).clickExtensionIcon());
+	await expect(menu).toHaveCount(0);
+	await page.evaluate(() => (window as any).clickExtensionIcon());
+	await expect(menu).toBeVisible();
+	await Promise.all([
+		page.waitForEvent("load"),
+		page.getByRole("button", { name: "Disable extension" }).click(),
+	]);
+	await expect(page.locator("#onshape-extension-host")).toHaveCount(1);
+	await expect(page.locator("#os-onshape-theme")).toHaveCount(0);
+	await expect(page.locator("#os-onshape-page-bridge")).toHaveCount(0);
+	await expect(
+		page.getByRole("button", { name: "Collapse sketch panel" }),
+	).toHaveCount(0);
+	await expect(
+		page.getByRole("button", { name: "Enable extension" }),
+	).toHaveCount(0);
+	await page.evaluate(() => (window as any).clickExtensionIcon());
+	await expect(
+		page.getByRole("button", { name: "Enable extension" }),
+	).toBeVisible();
+	await page.reload();
+	await expect(page.locator("#onshape-extension-host")).toHaveCount(1);
+	await expect(page.locator("#os-onshape-theme")).toHaveCount(0);
+	await page.evaluate(() => (window as any).clickExtensionIcon());
+	await page.getByRole("button", { name: "Enable extension" }).click();
+	await expect(
+		page.getByRole("button", { name: "Collapse sketch panel" }),
+	).toBeVisible();
+	await expect(menu).toHaveCount(0);
+});

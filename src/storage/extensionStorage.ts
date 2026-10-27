@@ -43,6 +43,7 @@ export type KeyboardShortcutBindings = Record<string, string>;
 
 export type OnshapePlusStorageSchema = {
 	settingsVersion: number;
+	extensionEnabled: boolean;
 	smartActionsEnabled: boolean;
 	hasSeenWelcomeDialog: boolean;
 	theme: Theme;
@@ -61,6 +62,7 @@ export type OnshapePlusStorageSchema = {
 
 export const DEFAULT_STORAGE_VALUES: OnshapePlusStorageSchema = {
 	settingsVersion: 2,
+	extensionEnabled: true,
 
 	theme: "dark",
 

@@ -20,3 +20,6 @@ const timer = setInterval(() => {
 	)
 		clearInterval(timer);
 }, 50);
+
+import { clickExtensionIcon } from "./browser";
+(window as any).clickExtensionIcon = clickExtensionIcon;
