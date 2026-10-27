@@ -3,7 +3,7 @@ import { useExtensionMenu } from "@/core/extensionMenu";
 import { setStorageItem } from "@/storage/extensionStorage";
 
 export function DisabledExtensionMenu() {
-	const open = useExtensionMenu();
+	const { open } = useExtensionMenu();
 	const [error, setError] = useState(false);
 	if (!open) return null;
 
