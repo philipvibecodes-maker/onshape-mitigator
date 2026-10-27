@@ -4,12 +4,14 @@ import {
 	ChevronUp,
 	Fullscreen,
 	GripHorizontal,
+	Power,
 	Settings,
 	Shrink,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useOnshapeBridge } from "@/contexts/OnshapeBridgeContext";
 import { useSettingsDialog } from "@/contexts/SettingsDialogContext";
+import { setStorageItem } from "@/storage/extensionStorage";
 import { copyAiContextToClipboard } from "@/core/aiContext";
 import { toggleFullscreen } from "@/core/utils";
 import { Button } from "../ui/button";
@@ -174,6 +176,15 @@ export function FixedItems({
 					</Card>
 				</TooltipContent>
 			</Tooltip>
+			<Button
+				variant="secondary"
+				className="col-span-2 w-full cursor-pointer"
+				onClick={() => void setStorageItem("extensionEnabled", false)}
+				title="Disable on all Onshape tabs. Pages reload to apply the change."
+			>
+				<Power className="h-4 w-4" />
+				Disable extension
+			</Button>
 		</div>
 	);
 }

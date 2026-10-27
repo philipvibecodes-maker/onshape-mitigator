@@ -109,3 +109,5 @@ All trademarks are the property of their respective owners.
 ## License
 
 Licensed under the MIT License, same as upstream.
+
+Click the extension icon on an Onshape tab to show or hide the floating menu. The menu starts hidden. Choose **Disable extension** to turn off Onshape Mitigator on all Onshape tabs (open tabs reload). Click the extension icon again and choose **Enable extension** to turn it back on.
