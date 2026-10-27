@@ -72,8 +72,14 @@ export function ExtensionSettingsProvider({
 				copyAiContext: "Alt+C",
 				toggleSketchToolbar: "Alt+T",
 			};
-			let bindingsMigrated = false;
-			const keyboardShortcuts = { ...settingsConfig.keyboardShortcuts };
+			let bindingsMigrated = Object.keys(
+					DEFAULT_STORAGE_VALUES.keyboardShortcuts,
+				).some((action) => !(action in settingsConfig.keyboardShortcuts));
+			const keyboardShortcuts = {
+				...DEFAULT_STORAGE_VALUES.keyboardShortcuts,
+				...settingsConfig.keyboardShortcuts,
+			};
+			settingsConfig.keyboardShortcuts = keyboardShortcuts;
 			for (const [action, legacy] of Object.entries(legacyBindings)) {
 				if (keyboardShortcuts[action] === legacy) {
 					keyboardShortcuts[action] =

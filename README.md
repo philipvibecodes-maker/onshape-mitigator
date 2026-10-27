@@ -32,6 +32,7 @@ Default bindings:
 
 | Shortcut      | Action                                              |
 | ------------- | --------------------------------------------------- |
+| `Alt+M`       | Open the extension menu                            |
 | `Alt+V`       | Toggle the Onshape **variables table**              |
 | `Alt+B`       | Collapse / expand the Onshape Mitigator sidebar     |
 | `Alt+Shift+T` | Collapse / expand the sketch options panel          |
@@ -39,6 +40,10 @@ Default bindings:
 | *(unbound)*   | Open extension settings                             |
 
 `Alt+Shift+…` is used where Onshape already owns the plain `Alt` combination (e.g. `Alt+T` toggles the element panel, `Alt+C` opens command search).
+
+### Escape in fullscreen
+
+In supported browsers, entering fullscreen captures Escape so it cancels the active sketch tool, feature dialog, or menu first. When nothing is cancellable, Escape exits fullscreen. Hold Escape to use the browser’s emergency exit. The browser may request keyboard access; if access is denied or unsupported, standard fullscreen behavior remains.
 
 ### AI-ready document context
 

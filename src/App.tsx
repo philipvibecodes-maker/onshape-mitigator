@@ -8,11 +8,13 @@ import { SmartFloatingActions } from "./components/SmartFloatingActions";
 import { useExtensionSettings } from "./contexts/ExtensionSettingsContext";
 import { useOnshapeBridge } from "./contexts/OnshapeBridgeContext";
 import { useExtensionMenu } from "./core/extensionMenu";
+import { useFullscreenEscape } from "./core/fullscreen";
 import { shouldUseFloatingNumpad } from "./core/settings";
 
 export function App() {
-	const { isDocumentLoaded } = useOnshapeBridge();
-	const { open: menuOpen, closeMenu } = useExtensionMenu();
+	const { isDocumentLoaded, currentTool } = useOnshapeBridge();
+	const { open: menuOpen, closeMenu, openMenu } = useExtensionMenu();
+	useFullscreenEscape(currentTool);
 	const { settings } = useExtensionSettings();
 
 	if (!isDocumentLoaded) {
@@ -32,7 +34,7 @@ export function App() {
 			{settings.smartActionsEnabled && <SmartFloatingActions />}
 			<SketchToolbarCollapser />
 			<MiniToolbarTooltips />
-			<KeyboardShortcuts />
+			<KeyboardShortcuts openMenu={openMenu} />
 		</>
 	);
 }

@@ -22,5 +22,6 @@ export function useExtensionMenu() {
 	}, []);
 
 	const closeMenu = useCallback(() => setOpen(false), []);
-	return { open, closeMenu };
+	const openMenu = useCallback(() => setOpen(true), []);
+	return { open, closeMenu, openMenu };
 }
