@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Draggable from "react-draggable";
 import { FORWARDED_ONSHAPE_EVENTS } from "@/constants/onshapeEvents";
@@ -9,6 +10,7 @@ import {
 import { watchElementPresence } from "@/core/utils";
 import { clampSidebarPosition } from "@/lib/utils";
 import { DEFAULT_STORAGE_VALUES } from "@/storage/extensionStorage";
+import { Button } from "../ui/button";
 import { PenSidebarMainContent } from "./Content";
 import { FixedItems } from "./FixedItems";
 
@@ -135,21 +137,37 @@ export function PenSidebar({ onHide }: { onHide: () => void }) {
 			>
 				<FixedItems
 					onHide={onHide}
-					collapsed={collapsed}
-					setCollapsed={setCollapsed}
 					setOnshapeSideBarWidth={setOnshapeSideBarWidth}
 				/>
 
 				{!collapsed && (
-					<PenSidebarMainContent
-						modeTools={modeTools}
-						toolbarType={toolbarType}
-						currentTool={currentTool}
-						redoEnabled={redoEnabled}
-						undoEnabled={undoEnabled}
-						featureDialogVisible={featureDialogVisible}
-					/>
+					<div className="min-h-0 overflow-y-auto">
+						<PenSidebarMainContent
+							modeTools={modeTools}
+							toolbarType={toolbarType}
+							currentTool={currentTool}
+							redoEnabled={redoEnabled}
+							undoEnabled={undoEnabled}
+							featureDialogVisible={featureDialogVisible}
+						/>
+					</div>
 				)}
+				<div className="shrink-0 px-2 py-2">
+					<Button
+						variant="secondary"
+						className="h-6 w-full cursor-pointer"
+						aria-label={collapsed ? "Expand menu" : "Collapse menu"}
+						aria-expanded={!collapsed}
+						title={collapsed ? "Expand menu" : "Collapse menu"}
+						onClick={() => setCollapsed(!collapsed)}
+					>
+						{collapsed ? (
+							<ChevronDown className="h-4 w-4" />
+						) : (
+							<ChevronUp className="h-4 w-4" />
+						)}
+					</Button>
+				</div>
 			</div>
 		</Draggable>
 	);

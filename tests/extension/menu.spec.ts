@@ -20,6 +20,7 @@ test("packaged extension action toggles menu and disabling persists across tabs"
 	const context = await chromium.launchPersistentContext(profile, {
 		executablePath: process.env.CHROME_PATH || "/usr/bin/google-chrome",
 		headless: true,
+		deviceScaleFactor: 2,
 		ignoreDefaultArgs: ["--disable-extensions"],
 		args: ["--no-sandbox", "--enable-unsafe-extension-debugging"],
 	});
@@ -87,6 +88,23 @@ test("packaged extension action toggles menu and disabling persists across tabs"
 		await expect(menu).toHaveCount(0);
 		await clickIcon(first);
 		await expect(menu).toBeVisible();
+		async function expectBottomToggle(name: string) {
+			const toggle = first.getByRole("button", { name, exact: true });
+			await expect(toggle).toBeInViewport();
+			const bounds = await toggle.boundingBox();
+			const menuBounds = await menu.boundingBox();
+			expect(bounds!.width).toBeGreaterThan(bounds!.height * 3);
+			expect(bounds!.height).toBeLessThanOrEqual(28);
+			const bottomGap =
+				menuBounds!.y + menuBounds!.height - bounds!.y - bounds!.height;
+			expect(bottomGap).toBeGreaterThanOrEqual(8);
+			expect(bottomGap).toBeLessThanOrEqual(12);
+			await expect(toggle).toHaveAttribute(
+				"aria-expanded",
+				String(name === "Collapse menu"),
+			);
+		}
+		await expectBottomToggle("Collapse menu");
 		const disable = first.getByRole("button", {
 			name: "Disable extension",
 			exact: true,
@@ -102,6 +120,12 @@ test("packaged extension action toggles menu and disabling persists across tabs"
 			.click();
 		await expect(disable).toHaveCount(0);
 		await expect(copyContext).toHaveCount(0);
+		await expectBottomToggle("Expand menu");
+		await first.mouse.move(1000, 650);
+		await expect(menu).toHaveCSS("opacity", "1");
+		await menu.screenshot({
+			path: "test-results/extension/menu-collapsed.png",
+		});
 		await first.getByRole("button", { name: "Hide menu", exact: true }).click();
 		await expect(menu).toHaveCount(0);
 		await clickIcon(first);
@@ -115,7 +139,8 @@ test("packaged extension action toggles menu and disabling persists across tabs"
 		await expect(copyContext).toBeVisible();
 		await expect(menu).toBeInViewport();
 		await expect(menu).toHaveCSS("opacity", "1");
-		await first.screenshot({ path: "test-results/extension/menu-open.png" });
+		await first.mouse.move(1000, 650);
+		await menu.screenshot({ path: "test-results/extension/menu-open.png" });
 		await Promise.all([
 			first.waitForEvent("load", { timeout: 10_000 }),
 			second.waitForEvent("load", { timeout: 10_000 }),

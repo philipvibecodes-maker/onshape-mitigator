@@ -1,12 +1,4 @@
-import {
-	ChevronDown,
-	ChevronUp,
-	Fullscreen,
-	GripHorizontal,
-	Settings,
-	Shrink,
-	X,
-} from "lucide-react";
+import { Fullscreen, GripHorizontal, Settings, Shrink, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSettingsDialog } from "@/contexts/SettingsDialogContext";
 import { toggleFullscreen } from "@/core/utils";
@@ -15,14 +7,10 @@ import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 export function FixedItems({
-	collapsed,
-	setCollapsed,
 	setOnshapeSideBarWidth,
 	onHide,
 }: {
-	collapsed: boolean;
 	onHide: () => void;
-	setCollapsed: (v: boolean) => void;
 	setOnshapeSideBarWidth: () => void;
 }) {
 	const { openSettings } = useSettingsDialog();
@@ -47,11 +35,7 @@ export function FixedItems({
 	}, []);
 
 	return (
-		<div
-			className={`grid grid-cols-2 justify-items-center gap-1 px-2 ${
-				collapsed ? "pb-2" : ""
-			}`}
-		>
+		<div className="grid shrink-0 grid-cols-2 justify-items-center gap-1 px-2">
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
@@ -123,30 +107,6 @@ export function FixedItems({
 				</TooltipContent>
 			</Tooltip>
 
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<Button
-						variant="secondary"
-						size="icon"
-						className="h-10 w-10 shrink-0 cursor-pointer"
-						aria-label={collapsed ? "Expand menu" : "Collapse menu"}
-						onClick={() => setCollapsed(!collapsed)}
-					>
-						{collapsed ? <ChevronDown /> : <ChevronUp />}
-					</Button>
-				</TooltipTrigger>
-
-				<TooltipContent side="right">
-					<Card className="w-[350px]">
-						<CardHeader>
-							<CardTitle>Collapse</CardTitle>
-							<CardDescription>
-								Hide / Show the sidebar content.
-							</CardDescription>
-						</CardHeader>
-					</Card>
-				</TooltipContent>
-			</Tooltip>
 			<Button
 				variant="secondary"
 				size="icon"
