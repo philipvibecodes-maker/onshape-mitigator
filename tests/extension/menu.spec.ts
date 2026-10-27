@@ -87,6 +87,32 @@ test("packaged extension action toggles menu and disabling persists across tabs"
 		await expect(menu).toHaveCount(0);
 		await clickIcon(first);
 		await expect(menu).toBeVisible();
+		const disable = first.getByRole("button", {
+			name: "Disable extension",
+			exact: true,
+		});
+		const copyContext = first.getByRole("button", {
+			name: "Copy context for AI",
+			exact: true,
+		});
+		await expect(disable).toHaveText("");
+		await expect(copyContext).toBeVisible();
+		await first
+			.getByRole("button", { name: "Collapse menu", exact: true })
+			.click();
+		await expect(disable).toHaveCount(0);
+		await expect(copyContext).toHaveCount(0);
+		await first.getByRole("button", { name: "Hide menu", exact: true }).click();
+		await expect(menu).toHaveCount(0);
+		await clickIcon(first);
+		await expect(
+			first.getByRole("button", { name: "Expand menu", exact: true }),
+		).toBeVisible();
+		await first
+			.getByRole("button", { name: "Expand menu", exact: true })
+			.click();
+		await expect(disable).toBeVisible();
+		await expect(copyContext).toBeVisible();
 		await expect(menu).toBeInViewport();
 		await expect(menu).toHaveCSS("opacity", "1");
 		await first.screenshot({ path: "test-results/extension/menu-open.png" });

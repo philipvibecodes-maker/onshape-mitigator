@@ -1,18 +1,14 @@
 import {
-	Bot,
 	ChevronDown,
 	ChevronUp,
 	Fullscreen,
 	GripHorizontal,
-	Power,
 	Settings,
 	Shrink,
+	X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useOnshapeBridge } from "@/contexts/OnshapeBridgeContext";
 import { useSettingsDialog } from "@/contexts/SettingsDialogContext";
-import { setStorageItem } from "@/storage/extensionStorage";
-import { copyAiContextToClipboard } from "@/core/aiContext";
 import { toggleFullscreen } from "@/core/utils";
 import { Button } from "../ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
@@ -22,13 +18,14 @@ export function FixedItems({
 	collapsed,
 	setCollapsed,
 	setOnshapeSideBarWidth,
+	onHide,
 }: {
 	collapsed: boolean;
+	onHide: () => void;
 	setCollapsed: (v: boolean) => void;
 	setOnshapeSideBarWidth: () => void;
 }) {
 	const { openSettings } = useSettingsDialog();
-	const { toolbarType, currentTool } = useOnshapeBridge();
 	const [isFullscreen, setIsFullscreen] = useState(false);
 
 	useEffect(() => {
@@ -132,33 +129,7 @@ export function FixedItems({
 						variant="secondary"
 						size="icon"
 						className="h-10 w-10 shrink-0 cursor-pointer"
-						onClick={() =>
-							copyAiContextToClipboard({ toolbarType, currentTool })
-						}
-					>
-						<Bot className="h-5 w-5" />
-					</Button>
-				</TooltipTrigger>
-
-				<TooltipContent side="left">
-					<Card className="w-[350px]">
-						<CardHeader>
-							<CardTitle>Copy context for AI</CardTitle>
-							<CardDescription>
-								Copy a snapshot of this document, current tool, selection, and
-								feature list to share with an AI assistant.
-							</CardDescription>
-						</CardHeader>
-					</Card>
-				</TooltipContent>
-			</Tooltip>
-
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<Button
-						variant="secondary"
-						size="icon"
-						className="h-10 w-10 shrink-0 cursor-pointer"
+						aria-label={collapsed ? "Expand menu" : "Collapse menu"}
 						onClick={() => setCollapsed(!collapsed)}
 					>
 						{collapsed ? <ChevronDown /> : <ChevronUp />}
@@ -178,12 +149,13 @@ export function FixedItems({
 			</Tooltip>
 			<Button
 				variant="secondary"
-				className="col-span-2 w-full cursor-pointer"
-				onClick={() => void setStorageItem("extensionEnabled", false)}
-				title="Disable on all Onshape tabs. Pages reload to apply the change."
+				size="icon"
+				className="h-10 w-10 cursor-pointer"
+				aria-label="Hide menu"
+				title="Hide menu"
+				onClick={onHide}
 			>
-				<Power className="h-4 w-4" />
-				Disable extension
+				<X className="h-5 w-5" />
 			</Button>
 		</div>
 	);

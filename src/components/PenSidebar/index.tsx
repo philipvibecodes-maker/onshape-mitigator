@@ -12,7 +12,7 @@ import { DEFAULT_STORAGE_VALUES } from "@/storage/extensionStorage";
 import { PenSidebarMainContent } from "./Content";
 import { FixedItems } from "./FixedItems";
 
-export function PenSidebar() {
+export function PenSidebar({ onHide }: { onHide: () => void }) {
 	const nodeRef = useRef<HTMLDivElement>(null);
 
 	const { settings, setSetting } = useExtensionSettings();
@@ -134,6 +134,7 @@ export function PenSidebar() {
 				"
 			>
 				<FixedItems
+					onHide={onHide}
 					collapsed={collapsed}
 					setCollapsed={setCollapsed}
 					setOnshapeSideBarWidth={setOnshapeSideBarWidth}
