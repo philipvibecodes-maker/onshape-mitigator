@@ -39,3 +39,18 @@ The browser tests exercise actual DOM hit testing, shadow-root event retargeting
 and browser editing history. They do not validate against the live Onshape
 application or browser extension packaging. JSDOM cannot reproduce native Undo;
 the unit suite checks editing-command delegation and Playwright checks history.
+
+
+## Packaged extension menu test
+
+Run `npm run test:extension` with a recent system Chrome (or set `CHROME_PATH`).
+This builds and installs the unmodified extension in a temporary Chrome profile.
+It invokes the browser action through CDP `Extensions.triggerAction`, exercising
+Chrome's real icon-click event, background worker, messaging, content scripts,
+and persistent storage. Only the Onshape document and its bridge events are
+fixtures; this test does not log into live Onshape.
+
+Coverage includes menu visibility and repeated toggling, keypad overlap, tab
+isolation, disabling and re-enabling across multiple open tabs, disabled startup
+in a new tab, persistence after reload, and retention of user preferences.
+Screenshots are written to `test-results/extension/`.

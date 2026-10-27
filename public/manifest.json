@@ -11,7 +11,7 @@
 		"128": "icons/onshape-plus-main-logo-128.png"
 	},
 	"action": {
-		"default_title": "Onshape Mitigator",
+		"default_title": "Toggle Onshape Mitigator menu",
 		"default_icon": {
 			"16": "icons/onshape-plus-main-logo-128.png",
 			"32": "icons/onshape-plus-main-logo-128.png"
@@ -53,5 +53,9 @@
 				"required": ["none"]
 			}
 		}
+	},
+	"background": {
+		"service_worker": "background.js",
+		"scripts": ["background.js"]
 	}
 }
