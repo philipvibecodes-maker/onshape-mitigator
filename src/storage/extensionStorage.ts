@@ -139,6 +139,7 @@ export const DEFAULT_STORAGE_VALUES: OnshapePlusStorageSchema = {
 	penSidebarCollapsed: false,
 
 	keyboardShortcuts: {
+		openExtensionMenu: "Alt+M",
 		openVariablesTable: "Alt+V",
 		togglePenSidebar: "Alt+B",
 		toggleSketchToolbar: "Alt+Shift+T",

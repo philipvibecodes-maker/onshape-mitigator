@@ -11,7 +11,7 @@ vi.mock("@/contexts/ExtensionSettingsContext", () => ({
 	useExtensionSettings: () => ({
 		settings: {
 			sketchToolbarCollapsed: false,
-			keyboardShortcuts: {},
+			keyboardShortcuts: { openExtensionMenu: "Alt+M" },
 		},
 		setSetting: vi.fn(),
 	}),
@@ -130,7 +130,7 @@ test("collapse control is outside the native header and its finish/cancel button
 	expect(parseFloat(button.style.left)).toBeGreaterThanOrEqual(504);
 });
 test("editable extension events do not reach native bubbling shortcuts", () => {
-	render(<KeyboardShortcuts />);
+	render(<KeyboardShortcuts openMenu={() => {}} />);
 	const host = document.createElement("div");
 	host.id = "onshape-extension-host";
 	document.body.append(host);
@@ -251,4 +251,35 @@ test("rapidly switching inputs edits only the latest focused input", () => {
 	act(() => result.current.hideKeyboard());
 	flushFrames();
 	expect(result.current.isVisible).toBe(false);
+});
+
+test("Alt+M opens the extension menu but leaves typing alone", () => {
+	const openMenu = vi.fn();
+	render(<KeyboardShortcuts openMenu={openMenu} />);
+	const native = vi.fn();
+	document.addEventListener("keydown", native);
+	try {
+		document.body.dispatchEvent(
+			new KeyboardEvent("keydown", {
+				key: "m",
+				altKey: true,
+				bubbles: true,
+				cancelable: true,
+			}),
+		);
+		expect(openMenu).toHaveBeenCalledOnce();
+		expect(native).not.toHaveBeenCalled();
+		input().dispatchEvent(
+			new KeyboardEvent("keydown", {
+				key: "m",
+				altKey: true,
+				bubbles: true,
+				cancelable: true,
+			}),
+		);
+		expect(openMenu).toHaveBeenCalledOnce();
+		expect(native).toHaveBeenCalledOnce();
+	} finally {
+		document.removeEventListener("keydown", native);
+	}
 });

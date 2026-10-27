@@ -1,4 +1,5 @@
 export type ShortcutActionId =
+	| "openExtensionMenu"
 	| "openVariablesTable"
 	| "togglePenSidebar"
 	| "toggleSketchToolbar"
@@ -12,6 +13,11 @@ export type ShortcutActionDefinition = {
 };
 
 export const SHORTCUT_ACTIONS: ShortcutActionDefinition[] = [
+	{
+		id: "openExtensionMenu",
+		label: "Open extension menu",
+		description: "Show the Onshape Mitigator menu.",
+	},
 	{
 		id: "openVariablesTable",
 		label: "Open variables table",

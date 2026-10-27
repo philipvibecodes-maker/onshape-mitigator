@@ -37,6 +37,7 @@ test("packaged extension action toggles menu and disabling persists across tabs"
 				hasSeenWelcomeDialog: true,
 				floatingNumpadMode: "always",
 				theme: "light",
+				keyboardShortcuts: { openSettings: "", togglePenSidebar: "Alt+B" },
 			}),
 		);
 		await context.route("https://cad.onshape.com/**", (route) =>
@@ -77,6 +78,13 @@ test("packaged extension action toggles menu and disabling persists across tabs"
 		const second = await newDocument("second");
 		const menu = first.locator("#os-pen-shortcut-sidebar");
 		await expect(menu).toHaveCount(0);
+		await first.locator("body").click();
+		await first.keyboard.press("Alt+m");
+		await expect(menu).toBeVisible();
+		await first.keyboard.press("Alt+m");
+		await expect(menu).toBeVisible();
+		await first.getByRole("button", { name: "Hide menu", exact: true }).click();
+		await expect(menu).toHaveCount(0);
 		// Verify features have initialized before invoking the real browser action.
 		await first.getByRole("textbox", { name: "Native input" }).focus();
 		await expect(first.locator("#os-floating-cad-keyboard")).toBeVisible();
@@ -87,6 +95,44 @@ test("packaged extension action toggles menu and disabling persists across tabs"
 		await clickIcon(first);
 		await expect(menu).toHaveCount(0);
 		await clickIcon(first);
+		await expect(menu).toBeVisible();
+		await cdp.send("Browser.setPermission", {
+			permission: { name: "keyboard-lock" },
+			setting: "granted",
+			origin: "https://cad.onshape.com",
+		});
+		await first.evaluate(() => {
+			const dialog = document.createElement("div");
+			dialog.id = "feature-dialog";
+			dialog.textContent = "Feature editor";
+			document.body.append(dialog);
+			document.addEventListener(
+				"keydown",
+				(event) => {
+					if (event.key === "Escape") dialog.remove();
+				},
+				{ once: true },
+			);
+		});
+		await first
+			.locator("button")
+			.filter({ has: first.locator("svg.lucide-fullscreen") })
+			.click();
+		await expect
+			.poll(() => first.evaluate(() => !!document.fullscreenElement))
+			.toBe(true);
+		await first.keyboard.press("Escape");
+		await expect(first.locator("#feature-dialog")).toHaveCount(0);
+		expect(await first.evaluate(() => !!document.fullscreenElement)).toBe(true);
+		await first.getByRole("button", { name: "Hide menu", exact: true }).click();
+		await first.keyboard.press("Escape");
+		await expect
+			.poll(() => first.evaluate(() => !!document.fullscreenElement))
+			.toBe(false);
+		await expect(first.locator("body")).not.toHaveClass(
+			/onshape-plus-fullscreen-mode/,
+		);
+		await first.keyboard.press("Alt+m");
 		await expect(menu).toBeVisible();
 		async function expectBottomToggle(name: string) {
 			const toggle = first.getByRole("button", { name, exact: true });

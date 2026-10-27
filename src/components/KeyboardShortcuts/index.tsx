@@ -17,13 +17,14 @@ function isInsideExtensionUi(event: KeyboardEvent): boolean {
 		);
 }
 
-export function KeyboardShortcuts() {
+export function KeyboardShortcuts({ openMenu }: { openMenu: () => void }) {
 	const { settings, setSetting } = useExtensionSettings();
 	const { openSettings } = useSettingsDialog();
 	const { toolbarType, currentTool } = useOnshapeBridge();
 
 	const handlers = useMemo<Record<ShortcutActionId, () => void>>(
 		() => ({
+			openExtensionMenu: openMenu,
 			openVariablesTable: () => {
 				toggleVariablesTable();
 			},
@@ -41,6 +42,7 @@ export function KeyboardShortcuts() {
 			},
 		}),
 		[
+			openMenu,
 			settings.penSidebarCollapsed,
 			settings.sketchToolbarCollapsed,
 			setSetting,

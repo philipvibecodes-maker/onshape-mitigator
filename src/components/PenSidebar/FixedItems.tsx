@@ -21,13 +21,10 @@ export function FixedItems({
 			const documentIsFullscreen = !!document.fullscreenElement;
 			setIsFullscreen(documentIsFullscreen);
 			setOnshapeSideBarWidth();
-
-			document.body.classList[documentIsFullscreen ? "add" : "remove"](
-				"onshape-plus-fullscreen-mode",
-			);
 		}
 
 		document.addEventListener("fullscreenchange", onFullScreenChange);
+		onFullScreenChange();
 
 		return () => {
 			document.removeEventListener("fullscreenchange", onFullScreenChange);
