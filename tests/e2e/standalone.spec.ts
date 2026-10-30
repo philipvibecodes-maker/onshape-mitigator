@@ -61,6 +61,22 @@ test("initial sketch state loads without events; collapse preserves finish/cance
   await expect(
     page.getByRole("button", { name: "Expand sketch panel", exact: true }),
   ).toHaveCSS("left", "604px");
+  await page.evaluate(() => {
+    document.querySelector<HTMLElement>("#feature-dialog")!.style.left =
+      `${innerWidth - 300}px`;
+    delete document.body.dataset.cancelled;
+  });
+  const expand = page.getByRole("button", {
+    name: "Expand sketch panel",
+    exact: true,
+  });
+  await expect(expand).toHaveCSS(
+    "left",
+    `${page.viewportSize()!.width - 330}px`,
+  );
+  await page.locator("#cancel").click();
+  await expect(page.locator("body")).toHaveAttribute("data-cancelled", "true");
+  await expect(page.locator("#panel-content")).toBeHidden();
   await page.reload();
   await expect(page.locator("#panel-content")).toBeHidden();
   await page.evaluate(() => (window as any).emitMode("Assembly"));

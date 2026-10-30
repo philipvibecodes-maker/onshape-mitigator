@@ -32,11 +32,22 @@ export function SketchPanel({
         patched = dialog;
       }
       const r = header.getBoundingClientRect();
+      let left = r.right + 4;
+      let top = r.top + 2;
+      // Keep the toggle outside the header's native finish/cancel controls,
+      // including when the dialog is dragged to the viewport's right edge.
+      if (left + 26 > innerWidth - 4) {
+        if (r.left >= 34) left = r.left - 30;
+        else {
+          left = Math.max(4, Math.min(innerWidth - 30, r.right - 26));
+          top = r.top >= 34 ? r.top - 30 : r.bottom + 4;
+        }
+      }
       const next =
         r.width || r.height
           ? {
-              top: Math.max(4, r.top + 2),
-              left: Math.max(4, Math.min(innerWidth - 32, r.right + 4)),
+              top: Math.max(4, Math.min(innerHeight - 30, top)),
+              left: Math.max(4, left),
             }
           : null;
       setAnchor((previous) =>
