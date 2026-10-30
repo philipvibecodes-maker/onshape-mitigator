@@ -1,63 +1,11 @@
-# Security Policy
+# Security policy
 
-## Overview
+Onshape Mitigator is an independent Chrome/Edge extension for `https://*.onshape.com/*`.
 
-Rally for Onshape is a browser extension that adds local UI/UX improvements to Onshape.
+Permissions are `storage` for local settings and `clipboardWrite` for explicitly requested document-context copies. Document information is shared externally only when a user requests context copying and has configured automatic chatbot opening with `{context}` in its URL. This is enabled by default for ChatGPT and can be disabled in Settings.
 
-The extension is designed to run only on Onshape CAD pages and to operate locally in the user's browser. It does not collect, transmit, sell, or share user data.
+The page-context bridge exposes only typed state and selection reads. It validates source, origin, and message shape; the client correlates responses and applies timeouts. Page scripts share the page context, so the bridge is not an authentication boundary against the Onshape page itself. It never grants access to extension storage or privileged browser APIs.
 
-Rally for Onshape is an independent community project and is not affiliated with, endorsed by, or sponsored by Onshape or PTC.
+No remotely hosted executable code, analytics, credential access, or arbitrary command/broadcast bridge endpoints are included. The variables shortcut clicks an existing Onshape UI button; collapse modifies only the active sketch dialog.
 
-## Data Handling
-
-Rally for Onshape does not intentionally collect or transmit:
-
-* CAD geometry
-* document names
-* workspace names
-* company names
-* user names
-* email addresses
-* account information
-* cookies
-* authentication tokens
-* session data
-* Onshape API keys
-* telemetry
-* analytics
-* crash reports
-
-Extension settings are stored locally using browser extension storage.
-
-## Network Requests
-
-Rally for Onshape does not make external network requests for analytics, telemetry, tracking, or data collection.
-
-The extension code runs locally in the browser.
-
-## Permissions
-
-Rally for Onshape requests only the permissions required to provide its UI enhancements.
-
-| Permission                  | Purpose                                                                       |
-| --------------------------- | ----------------------------------------------------------------------------- |
-| `storage`                   | Stores local extension settings, such as enabled features and UI preferences. |
-| `https://cad.onshape.com/*` | Allows the extension to run only on Onshape CAD pages.                        |
-
-## Onshape Interaction
-
-Rally for Onshape modifies the local browser interface by adding toolbar buttons, floating controls, numeric input helpers, fullscreen improvements, and context-aware UI actions.
-
-Some features may trigger existing Onshape UI commands in the same way a user would click a button or use a keyboard shortcut. The extension does not use Onshape API credentials or directly call private Onshape APIs.
-
-## Source Code and Auditability
-
-The source code is publicly available and can be reviewed on GitHub.
-
-Companies and security teams are encouraged to audit the source code, permissions, dependencies, and build process before approving use in managed environments.
-
-## Reporting Security Issues
-
-If you believe you have found a security issue, please report it privately by opening a GitHub security advisory or contacting the maintainer directly.
-
-Please do not publicly disclose security issues until they have been reviewed.
+Report vulnerabilities privately through this repository's GitHub security advisory facility. See [security overview](docs/security-overview.md) and [privacy policy](privacy-policy.md).

@@ -1,0 +1,5 @@
+Onshape Mitigator includes code and command-label data adapted from Rally for Onshape (onshape-plus), copyright (c) 2026 RileyDavidson-Evans, licensed under the MIT License reproduced in LICENSE.
+
+Retained/adapted portions include keyboard binding helpers, keyboard event isolation, variable-table DOM activation, command icon/label pairs, and patterns used by the page adapter and UI helpers. Mitigator's tooltip, sketch-collapse, and document-context features were ported from this repository's earlier fork.
+
+The replacement shell and bundled geometric M icons are part of this standalone port. There is no Rally runtime dependency.

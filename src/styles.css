@@ -1,0 +1,134 @@
+/* All UI styles stay inside the extension shadow root. */
+:host {
+  all: initial;
+  font:
+    14px/1.45 system-ui,
+    sans-serif;
+  color: #182231;
+}
+* {
+  box-sizing: border-box;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+  border: 1px solid #bdc8d5;
+  border-radius: 6px;
+  background: #f6f8fb;
+  color: #182231;
+  padding: 7px 10px;
+}
+button:hover {
+  background: #e8eef5;
+}
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #2268bd;
+  outline-offset: 2px;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.menu {
+  position: fixed;
+  right: 16px;
+  top: 64px;
+  width: 250px;
+  max-width: calc(100vw - 32px);
+  background: white;
+  border: 1px solid #bdc8d5;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px #0003;
+  padding: 12px;
+  z-index: 2147483645;
+}
+.menu header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.menu > button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-top: 6px;
+}
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: #0005;
+  display: grid;
+  place-items: center;
+  z-index: 2147483646;
+  padding: 16px;
+}
+.settings {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px #0004;
+  padding: 20px;
+  width: 540px;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+}
+h2 {
+  margin: 0 0 14px;
+  font-size: 19px;
+}
+h3 {
+  font-size: 15px;
+  margin: 20px 0 8px;
+}
+label {
+  display: block;
+  margin: 10px 0;
+}
+input[type="text"],
+input[type="url"] {
+  width: 100%;
+  padding: 7px;
+  border: 1px solid #bdc8d5;
+  border-radius: 4px;
+  color: inherit;
+  background: white;
+}
+.binding {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 7px 0;
+}
+.binding input {
+  width: 180px;
+  text-align: center;
+  cursor: pointer;
+}
+small {
+  display: block;
+  color: #4b596a;
+}
+.error {
+  color: #a01919;
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+.sketch-toggle {
+  position: fixed;
+  z-index: 2147483644;
+  padding: 0;
+  width: 26px;
+  height: 26px;
+  font-size: 20px;
+  line-height: 20px;
+}

@@ -1,31 +1,131 @@
 <!doctype html>
-<html><head>
-<script src="/keyboard-guard.js"></script>
-<style>
-#feature-dialog { position: absolute; left: 200px; top: 100px; width: 300px; }
-.ns-dialog-header { height: 32px; background: #ddd; display:flex; justify-content:flex-end; }
-.ns-dialog-header button { width:28px; padding:0; }
-#native-input { position:absolute; top:200px; left:200px; }
-#native-area { position:absolute; top:250px; left:200px; }
-</style>
-</head><body>
-<div id="feature-dialog"><div class="feature-dialog-main"><div class="ns-dialog-header">
-<button id="finish">✓</button><button id="cancel">✕</button>
-</div><div id="panel-content">Sketch panel</div></div></div>
-<input id="native-input" aria-label="Native filter"><textarea id="native-area" aria-label="Native textarea"></textarea>
-<script>
-window.nativeKeys = [];
-for (const type of ["keydown", "keypress", "keyup"]) {
-  window.addEventListener(type, e => {
-    if (["l", "d", "s"].includes(e.key) && !["INPUT", "TEXTAREA"].includes(e.target.tagName)) {
-      window.nativeKeys.push(type + ":" + e.key);
-      if (type === "keydown") e.preventDefault();
-    }
-  }, true);
-}
-document.querySelector("#cancel").onclick = () => document.body.dataset.cancelled = "true";
-document.querySelector("#finish").onclick = () => document.body.dataset.finished = "true";
-window.chrome = { runtime: { getURL: () => "/tests/fixture/empty-bridge.js" } };
-</script>
-<script type="module" src="./boot.ts"></script>
-</body></html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Fixture document - Onshape</title>
+    <script src="/keyboard-guard.js"></script>
+    <style>
+      #feature-dialog {
+        position: absolute;
+        left: 200px;
+        top: 100px;
+        width: 300px;
+      }
+      .ns-dialog-header {
+        height: 32px;
+        background: #ddd;
+        display: flex;
+        justify-content: flex-end;
+      }
+      .ns-dialog-header button {
+        width: 28px;
+        padding: 0;
+      }
+      #native-input {
+        position: absolute;
+        top: 200px;
+        left: 200px;
+      }
+      .os-mini-toolbar-panel {
+        position: absolute;
+        top: 350px;
+        left: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 data-testid="document-title">Fixture document</h1>
+    <div class="os-element-tab active">Part Studio 1</div>
+    <div id="feature-dialog">
+      <div class="feature-dialog-main">
+        <div class="ns-dialog-header">
+          <button id="finish">✓</button><button id="cancel">✕</button>
+        </div>
+        <div id="panel-content">Sketch panel</div>
+      </div>
+    </div>
+    <input id="native-input" aria-label="Native filter" />
+    <div id="feature-list"><div class="feature-list-item">Sketch 1</div></div>
+    <table class="variable-table">
+      <tr>
+        <td>width</td>
+        <td>10 mm</td>
+      </tr>
+    </table>
+    <button id="variables" aria-label="Native variables">
+      <svg><use href="#variable-table-button"></use></svg>
+    </button>
+    <div class="os-mini-toolbar-panel">
+      <button class="os-tool-item" icon="extrude-button">icon</button
+      ><button class="os-tool-item" icon="unknown">unknown</button>
+    </div>
+    <script>
+      const initial = window.fixtureMode || "Sketch";
+      const handlers = new Map();
+      window.toolbar = { toolbarName: initial, currentTool: "LINESEGMENT" };
+      window.selectionReads = 0;
+      window.services = {
+        ElementToolbarService: window.toolbar,
+        $rootScope: {
+          $on(name, fn) {
+            const list = handlers.get(name) || [];
+            list.push(fn);
+            handlers.set(name, list);
+            return () =>
+              handlers.set(
+                name,
+                list.filter((item) => item !== fn),
+              );
+          },
+        },
+        SelectionService: {
+          constructor: {
+            getCurrentSelections() {
+              window.selectionReads++;
+              return [
+                {
+                  isFace: () => true,
+                  getIdString: () => "face-1",
+                  getName: () => "Top face",
+                },
+              ];
+            },
+          },
+        },
+      };
+      window.angular = {
+        element: () => ({
+          injector: () =>
+            window.services
+              ? {
+                  get(name) {
+                    return window.services[name];
+                  },
+                }
+              : undefined,
+        }),
+      };
+      window.emitMode = (mode) => {
+        window.toolbar.toolbarName = mode;
+        for (const fn of handlers.get("CHANGE_ELEMENT_TOOLBAR") || [])
+          fn({}, { toolbarName: mode });
+      };
+      window.nativeKeys = [];
+      window.addEventListener(
+        "keydown",
+        (e) => {
+          window.nativeKeys.push(e.key);
+          if (e.key === "Escape") document.body.dataset.cancelled = "true";
+        },
+        true,
+      );
+      document.querySelector("#cancel").onclick = () =>
+        (document.body.dataset.cancelled = "true");
+      document.querySelector("#finish").onclick = () =>
+        (document.body.dataset.finished = "true");
+      document.querySelector("#variables").onclick = () =>
+        (document.body.dataset.variables = "true");
+    </script>
+    <script type="module" src="/tests/fixture/boot.ts"></script>
+  </body>
+</html>

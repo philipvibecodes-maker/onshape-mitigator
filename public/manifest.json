@@ -1,61 +1,42 @@
 {
-	"manifest_version": 3,
-	"name": "Onshape Mitigator",
-	"version": "1.0.0",
-	"description": "Fork of Rally for Onshape: tooltips, collapsible sketch toolbar, configurable keyboard shortcuts, and AI-ready document context.",
-	"homepage_url": "https://github.com/RileyDavidson-Evans/onshape-plus",
-	"icons": {
-		"16": "icons/onshape-plus-main-logo-128.png",
-		"32": "icons/onshape-plus-main-logo-128.png",
-		"48": "icons/onshape-plus-main-logo-128.png",
-		"128": "icons/onshape-plus-main-logo-128.png"
-	},
-	"action": {
-		"default_title": "Toggle Onshape Mitigator menu",
-		"default_icon": {
-			"16": "icons/onshape-plus-main-logo-128.png",
-			"32": "icons/onshape-plus-main-logo-128.png"
-		}
-	},
-	"content_scripts": [
-		{
-			"matches": ["https://*.onshape.com/*"],
-			"js": ["keyboard-guard.js"],
-			"run_at": "document_start"
-		},
-		{
-			"matches": ["https://*.onshape.com/*"],
-			"js": ["assets/main.js"],
-			"run_at": "document_idle"
-		}
-	],
-	"commands": {
-		"reload-extension": {
-			"suggested_key": {
-				"default": "Ctrl+Shift+R",
-				"mac": "Command+Shift+R"
-			},
-			"description": "Reload extension"
-		}
-	},
-	"web_accessible_resources": [
-		{
-			"resources": ["onshape-page-bridge.js"],
-			"matches": ["https://*.onshape.com/*"]
-		}
-	],
-	"permissions": ["storage", "clipboardWrite"],
-	"browser_specific_settings": {
-		"gecko": {
-			"id": "onshape-mitigator@example.com",
-			"strict_min_version": "109.0",
-			"data_collection_permissions": {
-				"required": ["none"]
-			}
-		}
-	},
-	"background": {
-		"service_worker": "background.js",
-		"scripts": ["background.js"]
-	}
+  "manifest_version": 3,
+  "name": "Onshape Mitigator",
+  "version": "2.0.0",
+  "description": "Small Onshape helpers: instant tooltips, collapsible sketch panel, configurable shortcuts, and AI-ready document context.",
+  "homepage_url": "https://github.com/philipvibecodes-maker/onshape-mitigator",
+  "icons": {
+    "16": "icons/mitigator-16.png",
+    "32": "icons/mitigator-32.png",
+    "48": "icons/mitigator-48.png",
+    "128": "icons/mitigator-128.png"
+  },
+  "action": {
+    "default_title": "Toggle Onshape Mitigator menu",
+    "default_icon": {
+      "16": "icons/mitigator-16.png",
+      "32": "icons/mitigator-32.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.onshape.com/*"],
+      "js": ["keyboard-guard.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://*.onshape.com/*"],
+      "js": ["assets/main.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["onshape-page-bridge.js"],
+      "matches": ["https://*.onshape.com/*"]
+    }
+  ],
+  "permissions": ["storage", "clipboardWrite"],
+  "background": {
+    "service_worker": "background.js"
+  }
 }
