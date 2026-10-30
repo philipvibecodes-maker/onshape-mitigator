@@ -9,19 +9,26 @@ import { loadSettings, saveSetting } from "./storage";
 import { EMPTY_STATE, readPage, toggleVariablesTable } from "./adapter/client";
 import { isDocumentPage } from "./adapter/dom";
 import { matchesBinding } from "./shortcuts";
-import { copyAiContextToClipboard, showToast } from "./aiContext";
+import {
+  collectAiContext,
+  copyAiContextToClipboard,
+  formatContextAsMarkdown,
+  showToast,
+} from "./aiContext";
 import { Tooltips } from "./components/Tooltips";
 import { SketchPanel } from "./components/SketchPanel";
 import { Settings } from "./components/Settings";
+import { Menu } from "./components/Menu";
 
 export function App({ initial }: { initial: SettingsValue }) {
   const [settings, setSettings] = useState(initial);
   const [menu, setMenu] = useState(false);
+  const [menuScale, setMenuScale] = useState(1);
   const [editing, setEditing] = useState(false);
   const [state, setState] = useState<OnshapeState>(EMPTY_STATE);
   const [documentPage, setDocumentPage] = useState(isDocumentPage());
   const [copying, setCopying] = useState(false);
-  const menuElement = useRef<HTMLElement>(null);
+  const menuOpening = useRef(false);
   const copyInFlight = useRef(false);
   const enabled = settings.extensionEnabled;
   const update = useCallback(async () => setSettings(await loadSettings()), []);
@@ -38,16 +45,30 @@ export function App({ initial }: { initial: SettingsValue }) {
   }, [update]);
   useEffect(() => {
     const onMessage = (message: unknown) => {
-      if (
-        message &&
-        typeof message === "object" &&
-        (message as { type?: unknown }).type === "onshape-mitigator:toggle-menu"
-      )
-        setMenu((previous) => !previous);
+      if (!message || typeof message !== "object") return;
+      switch ((message as { type?: unknown }).type) {
+        case "onshape-mitigator:toggle-menu":
+          setMenu((previous) => !previous);
+          break;
+        case "onshape-mitigator:menu-state":
+          setMenu(false);
+          return Promise.resolve({ documentPage: isDocumentPage() });
+        case "onshape-mitigator:open-settings":
+          if (!enabled) return;
+          setMenu(false);
+          setEditing(true);
+          return Promise.resolve({ opened: true });
+        case "onshape-mitigator:document-context":
+          if (!enabled || !isDocumentPage()) return;
+          return collectAiContext({
+            toolbarType: state.toolbarType,
+            currentTool: state.currentTool,
+          }).then((snapshot) => ({ markdown: formatContextAsMarkdown(snapshot) }));
+      }
     };
     browser.runtime.onMessage.addListener(onMessage);
     return () => browser.runtime.onMessage.removeListener(onMessage);
-  }, []);
+  }, [enabled, state]);
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
@@ -91,9 +112,32 @@ export function App({ initial }: { initial: SettingsValue }) {
       setCopying(false);
     }
   }, [state]);
+  const toggleMenu = useCallback(async () => {
+    if (menu) {
+      setMenu(false);
+      return;
+    }
+    if (menuOpening.current) return;
+    menuOpening.current = true;
+    try {
+      const reply = await browser.runtime.sendMessage({
+        type: "onshape-mitigator:open-menu",
+        pageFullscreen: !!document.fullscreenElement,
+      }).catch(() => null) as { opened?: boolean; scale?: number } | null;
+      if (reply?.opened) return;
+      setMenuScale(
+        typeof reply?.scale === "number" && Number.isFinite(reply.scale) && reply.scale > 0
+          ? reply.scale
+          : 1,
+      );
+      setMenu(true);
+    } finally {
+      menuOpening.current = false;
+    }
+  }, [menu]);
   useEffect(() => {
     const actions: Record<ActionId, () => void> = {
-      openExtensionMenu: () => setMenu((previous) => !previous),
+      openExtensionMenu: () => void toggleMenu(),
       openVariablesTable: () => {
         if (!toggleVariablesTable())
           showToast("Variables table is unavailable on this page");
@@ -131,10 +175,7 @@ export function App({ initial }: { initial: SettingsValue }) {
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [settings, enabled, editing, toggleSketch, copy]);
-  useEffect(() => {
-    if (menu) menuElement.current?.focus();
-  }, [menu]);
+  }, [settings, enabled, editing, toggleSketch, copy, toggleMenu]);
   async function save(next: SettingsValue) {
     await browser.storage.local.set(next);
     setSettings(next);
@@ -142,51 +183,21 @@ export function App({ initial }: { initial: SettingsValue }) {
   return (
     <>
       {menu && (
-        <section
-          className="menu"
-          aria-label="Onshape Mitigator menu"
-          ref={menuElement}
-          tabIndex={-1}
-          onKeyDown={(event) => {
-            if (
-              event.key === "Escape" ||
-              matchesBinding(
-                event.nativeEvent,
-                settings.keyboardShortcuts.openExtensionMenu,
-              )
-            ) {
-              event.preventDefault();
-              setMenu(false);
-            }
-          }}
-        >
-          <header>
-            <strong>Onshape Mitigator</strong>
-            <button aria-label="Hide menu" onClick={() => setMenu(false)}>
-              ×
-            </button>
-          </header>
-          {enabled && (
-            <>
-              <button
-                disabled={!documentPage || copying}
-                onClick={() => void copy()}
-              >
-                {copying ? "Copying context…" : "Copy context for AI"}
-              </button>
-              <button onClick={() => setEditing(true)}>Settings</button>
-            </>
-          )}
-          <button
-            onClick={() =>
-              void saveSetting("extensionEnabled", !enabled).catch(() =>
-                showToast("Could not change extension state"),
-              )
-            }
-          >
-            {enabled ? "Disable extension" : "Enable extension"}
-          </button>
-        </section>
+        <Menu
+          scale={menuScale}
+          enabled={enabled}
+          canCopy={documentPage}
+          copying={copying}
+          shortcut={settings.keyboardShortcuts.openExtensionMenu}
+          close={() => setMenu(false)}
+          copy={() => void copy()}
+          configure={() => setEditing(true)}
+          toggleEnabled={() =>
+            void saveSetting("extensionEnabled", !enabled).catch(() =>
+              showToast("Could not change extension state"),
+            )
+          }
+        />
       )}
       {enabled && editing && (
         <Settings

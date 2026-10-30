@@ -142,6 +142,23 @@ test("menu toggles with shortcut and icon; variables shortcut ignores typing and
   await expect(page.locator("body")).toHaveAttribute("data-variables", "true");
 });
 
+test("fallback menu stays at the upper-right edge and fits a small viewport", async ({ page }) => {
+  await openFixture(page);
+  await page.keyboard.press("Alt+m");
+  const menu = page.getByRole("region", { name: "Onshape Mitigator menu" });
+  await expect(menu).toBeVisible();
+  for (const viewport of [{ width: 1280, height: 720 }, { width: 220, height: 200 }]) {
+    await page.setViewportSize(viewport);
+    const box = await menu.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.y).toBe(8);
+    expect(box!.x + box!.width).toBeCloseTo(viewport.width - 8);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height - 8);
+  }
+  await menu.getByRole("button", { name: "Hide menu", exact: true }).click();
+  await expect(menu).toHaveCount(0);
+});
+
 test("shortcut recording rejects duplicates, Escape cancels recording, Cancel discards edits", async ({
   page,
 }) => {

@@ -9,6 +9,8 @@ export function clickExtensionIcon() {
 export default {
   runtime: {
     getURL: () => "/tests/fixture/empty-bridge.js",
+    // Fixtures exercise the in-page fallback; packaged tests cover native popups.
+    sendMessage: async () => ({ opened: false }),
     onMessage: {
       addListener: (fn: (message: unknown) => void) => messageListeners.add(fn),
       removeListener: (fn: (message: unknown) => void) =>

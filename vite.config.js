@@ -30,6 +30,24 @@ function buildPageBridge() {
           },
         },
       });
+      // Build the popup separately: manifest content scripts cannot import the
+      // shared ES-module chunks that a multi-entry popup build would emit.
+      await build({
+        configFile: false,
+        plugins: [react()],
+        build: {
+          outDir: "dist",
+          emptyOutDir: false,
+          rollupOptions: {
+            input: "popup.html",
+            output: {
+              entryFileNames: "assets/popup.js",
+              chunkFileNames: "assets/popup-[name].js",
+              assetFileNames: "assets/popup-[name][extname]",
+            },
+          },
+        },
+      });
       await copyFile("LICENSE", "dist/LICENSE");
       await copyFile("NOTICE", "dist/NOTICE");
     },

@@ -1,4 +1,4 @@
-/* All UI styles stay inside the extension shadow root. */
+/* Shared by the content-script shadow root and the browser action popup. */
 :host {
   all: initial;
   font:
@@ -34,11 +34,14 @@ button:disabled {
   opacity: 0.6;
 }
 .menu {
+  zoom: var(--menu-scale, 1);
   position: fixed;
-  right: 16px;
-  top: 64px;
+  right: 8px;
+  top: 8px;
   width: 250px;
-  max-width: calc(100vw - 32px);
+  max-width: calc(100vw / var(--menu-scale, 1) - 16px);
+  max-height: calc(100vh / var(--menu-scale, 1) - 16px);
+  overflow-y: auto;
   background: white;
   border: 1px solid #bdc8d5;
   border-radius: 10px;
@@ -66,6 +69,11 @@ button:disabled {
   place-items: center;
   z-index: 2147483646;
   padding: 16px;
+}
+.menu-status {
+  margin: 10px 0 0;
+  color: #4b596a;
+  font-size: 12px;
 }
 .settings {
   background: white;

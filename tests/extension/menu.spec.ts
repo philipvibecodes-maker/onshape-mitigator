@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium, expect, test, type Page } from "@playwright/test";
 
-test("production extension action, migration, tab isolation and persistent cross-tab disable", async () => {
+// Chromium exposes headless action popups as "other" targets. Include them in
+// Playwright's page inventory so we test the real popup, not a surrogate tab.
+process.env.PW_CHROMIUM_ATTACH_TO_OTHER = "1";
+
+test("anchored popup, fullscreen fallback, migration and persistent cross-tab disable", async () => {
   const profile = await mkdtemp(path.join(tmpdir(), "mitigator-"));
   const context = await chromium.launchPersistentContext(profile, {
     executablePath: browserPath,
@@ -60,10 +64,16 @@ test("production extension action, migration, tab isolation and persistent cross
       });
       const target = targetInfos.find((target) => target.url === page.url());
       expect(target).toBeDefined();
+      const opened = context.waitForEvent("page", {
+        predicate: (page) => page.url() === `chrome-extension://${id}/popup.html`,
+      });
       await cdp.send("Extensions.triggerAction", {
         id,
         targetId: target!.targetId,
       });
+      const popup = await opened;
+      await expect(popup.getByRole("region", { name: "Onshape Mitigator menu" })).toBeVisible();
+      return popup;
     }
     const first = await document("first"),
       second = await document("second");
@@ -74,23 +84,86 @@ test("production extension action, migration, tab isolation and persistent cross
     await expect(first.locator("#os-floating-cad-keyboard")).toHaveCount(0);
     await expect(first.locator("body")).not.toHaveAttribute("data-os-theme");
     expect(await first.evaluate(() => (window as any).selectionReads)).toBe(0);
-    await icon(first);
-    await expect(menu).toBeVisible();
+    let popup = await icon(first);
+    await expect(menu).toHaveCount(0);
     await expect(
       second.getByRole("region", { name: "Onshape Mitigator menu" }),
     ).toHaveCount(0);
-    await icon(first);
-    await expect(menu).toHaveCount(0);
-    await icon(first);
-    await expect(menu).toBeVisible();
-    await first.screenshot({
+    await expect(popup.getByRole("button", { name: "Copy context for AI", exact: true })).toBeEnabled();
+    await popup.getByRole("button", { name: "Copy context for AI", exact: true }).click();
+    await expect(popup.getByRole("status")).toHaveText("Context copied for AI");
+    await popup.getByRole("button", { name: "Hide menu", exact: true }).click();
+    await expect.poll(() => popup.isClosed()).toBe(true);
+    const filter = first.getByRole("textbox", { name: "Native filter", exact: true });
+    await filter.focus();
+    await filter.press("Control+v");
+    await expect(filter).toHaveValue(/# Onshape Context/);
+    await filter.fill("");
+    popup = await icon(first);
+    await expect(popup.getByRole("region", { name: "Onshape Mitigator menu" })).toHaveCSS("font-size", "14px");
+    await popup.getByRole("region", { name: "Onshape Mitigator menu" }).screenshot({
       path: "test-results/extension/standalone-menu.png",
     });
-    await first.getByRole("button", { name: "Settings", exact: true }).click();
+    await popup.getByRole("button", { name: "Settings", exact: true }).click();
+    await expect.poll(() => popup.isClosed()).toBe(true);
     await expect(
       first.getByRole("textbox", { name: "Open settings", exact: true }),
     ).toHaveValue("Ctrl+Shift+Y");
     await first.getByRole("button", { name: "Cancel", exact: true }).click();
+
+    // Alt+M uses the same native popup when the toolbar is available.
+    await first.locator("h1").click();
+    const shortcutPopup = context.waitForEvent("page", {
+      predicate: (page) => page.url() === `chrome-extension://${id}/popup.html`,
+    });
+    await first.keyboard.press("Alt+m");
+    popup = await shortcutPopup;
+    await expect(popup.getByRole("region", { name: "Onshape Mitigator menu" })).toBeVisible();
+    await expect(menu).toHaveCount(0);
+    await popup.getByRole("button", { name: "Hide menu", exact: true }).click();
+
+    // With the browser toolbar hidden, use the matching in-page menu at its
+    // upper-right edge, without the old fixed 64px gap.
+    const pageCdp = await context.newCDPSession(first);
+    const { windowId } = await pageCdp.send("Browser.getWindowForTarget");
+    await pageCdp.send("Browser.setWindowBounds", { windowId, bounds: { windowState: "fullscreen" } });
+    await first.locator("h1").click();
+    await first.keyboard.press("Alt+m");
+    await expect(menu).toBeVisible();
+    await expect(menu).toHaveCSS("top", "8px");
+    await expect(menu).toHaveCSS("right", "8px");
+    await expect(menu).toHaveCSS("width", "250px");
+    await expect(second.getByRole("region", { name: "Onshape Mitigator menu" })).toHaveCount(0);
+    await first.screenshot({ path: "test-results/extension/fullscreen-menu.png" });
+    await first.keyboard.press("Alt+m");
+    await expect(menu).toHaveCount(0);
+
+    // Page zoom must not change the fallback's apparent size or edge spacing
+    // relative to the native browser popup.
+    await worker.evaluate(async () => {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      await chrome.tabs.setZoom(tab.id!, 0.8);
+    });
+    await first.keyboard.press("Alt+m");
+    await expect(menu).toBeVisible();
+    const zoomedBox = await menu.boundingBox();
+    const dpr = await first.evaluate(() => devicePixelRatio);
+    expect(zoomedBox!.width * dpr).toBeCloseTo(250, 0);
+    expect(zoomedBox!.y * dpr).toBeCloseTo(8, 0);
+    await first.keyboard.press("Alt+m");
+    await worker.evaluate(async () => {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      await chrome.tabs.setZoom(tab.id!, 1);
+    });
+    await pageCdp.send("Browser.setWindowBounds", { windowId, bounds: { windowState: "normal" } });
+
+    // HTML fullscreen also hides the toolbar independently of window state.
+    await first.evaluate(() => document.documentElement.requestFullscreen());
+    await first.keyboard.press("Alt+m");
+    await expect(menu).toBeVisible();
+    await first.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+    await first.evaluate(async () => { if (document.fullscreenElement) await document.exitFullscreen(); });
     const migrated = await worker.evaluate(() =>
       chrome.storage.local.get([
         "settingsVersion",
@@ -101,10 +174,11 @@ test("production extension action, migration, tab isolation and persistent cross
     expect(migrated.settingsVersion).toBe(3);
     expect(migrated.keyboardShortcuts).not.toHaveProperty("togglePenSidebar");
     expect(migrated.theme).toBe("dark");
+    popup = await icon(first);
     await Promise.all([
       first.waitForEvent("load"),
       second.waitForEvent("load"),
-      first
+      popup
         .getByRole("button", { name: "Disable extension", exact: true })
         .click(),
     ]);
@@ -115,24 +189,24 @@ test("production extension action, migration, tab isolation and persistent cross
     }
     const third = await document("disabled");
     await expect(third.locator("#mitigator-page-adapter")).toHaveCount(0);
-    await icon(third);
+    popup = await icon(third);
     await expect(
-      third.getByRole("button", { name: "Enable extension", exact: true }),
+      popup.getByRole("button", { name: "Enable extension", exact: true }),
     ).toBeVisible();
     await expect(
-      third.getByRole("button", { name: "Copy context for AI", exact: true }),
+      popup.getByRole("button", { name: "Copy context for AI", exact: true }),
     ).toHaveCount(0);
     await third.reload();
-    await icon(third);
+    popup = await icon(third);
     await expect(
-      third.getByRole("button", { name: "Enable extension", exact: true }),
+      popup.getByRole("button", { name: "Enable extension", exact: true }),
     ).toBeVisible();
-    await third.screenshot({
+    await popup.getByRole("region", { name: "Onshape Mitigator menu" }).screenshot({
       path: "test-results/extension/disabled-menu.png",
     });
     await Promise.all([
       ...[first, second, third].map((page) => page.waitForEvent("load")),
-      third
+      popup
         .getByRole("button", { name: "Enable extension", exact: true })
         .click(),
     ]);
@@ -157,6 +231,14 @@ test("production extension action, migration, tab isolation and persistent cross
       aiChatbotUrl: "https://example.com/",
       aiOpenAfterCopy: false,
     });
+
+    const outside = await context.newPage();
+    await outside.goto("about:blank");
+    popup = await icon(outside);
+    await expect(popup.getByRole("button", { name: "Copy context for AI", exact: true })).toBeDisabled();
+    await expect(popup.getByRole("button", { name: "Settings", exact: true })).toBeDisabled();
+    await expect(popup.getByRole("status")).toContainText("Onshape tab");
+    await popup.getByRole("button", { name: "Hide menu", exact: true }).click();
     expect(errors).toEqual([]);
   } finally {
     await context.close();

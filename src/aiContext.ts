@@ -259,7 +259,7 @@ export function showToast(message: string): void {
   }, 2200);
 }
 
-async function writeClipboard(text: string): Promise<boolean> {
+export async function writeClipboard(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
     return true;
