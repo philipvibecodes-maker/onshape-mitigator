@@ -1,118 +1,68 @@
 # Onshape Mitigator
 
-A fork of [**Rally for Onshape**](https://github.com/RileyDavidson-Evans/onshape-plus) (MIT) — the open-source browser extension by Riley Davidson-Evans — with quality-of-life features aimed at making Onshape friendlier for newer and casual users:
+A small standalone Chrome and Edge extension that makes Onshape easier to learn and use. It keeps four Mitigator features and replaces the former Rally-based application with a minimal extension shell.
 
-* **Instant tooltips on the `s` shortcut menu** — hovering an icon in Onshape's mini-toolbar immediately shows the command name (no OS tooltip delay), plus tooltips on extension icons that previously had none. Stock Onshape leaves you guessing what unlabeled icons do, which makes learning the tools harder than it needs to be.
-* **Collapsible sketch panel** — the sketch options dialog (`Sketch 1 …`) can be collapsed to just its title bar while keeping the finish/cancel buttons usable. On smaller screens the panel eats a real chunk of modeling space.
-* **Configurable keyboard shortcuts** — including one for the Onshape variables table, which stock Onshape cannot bind.
-* **One-click document context for AI assistants** — copies a Markdown snapshot of the current document state to the clipboard and optionally opens your chatbot of choice with the prompt pre-filled, so you can ask for help without describing your setup by hand.
+- **Instant tooltips:** hovering an icon in Onshape's `s` shortcut menu immediately shows its command name.
+- **Collapsible sketch panel:** collapse sketch options while leaving native finish/cancel controls available. The preference persists.
+- **Configurable shortcuts:** includes toggling the variables table, which Onshape cannot normally bind.
+- **AI-ready document context:** copy a Markdown snapshot of the document URL/IDs, names, toolbar/tool state, selections, and visible feature/variable lists. Optionally open a configured chatbot.
 
-Everything else — the floating pen sidebar, floating numeric keypad, smart floating actions, toolbar quick actions, canvas backgrounds, themes, fullscreen mode — comes from Rally for Onshape. See the [upstream repository](https://github.com/RileyDavidson-Evans/onshape-plus) and its [README](https://github.com/RileyDavidson-Evans/onshape-plus#readme) for the full feature set and documentation.
+## Install in Chrome or Edge
 
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-![Telemetry](https://img.shields.io/badge/Telemetry-None-success)
+Requires Node 22.12+ or Node 24 and a current desktop Chrome or Edge.
 
----
-
-## What's new in this fork
-
-### Instant tooltips for the `s` shortcut menu
-
-Onshape's mini-toolbar (the popup shown when you press `s`) renders its icons without any tooltip text. Onshape Mitigator watches the menu and shows a custom tooltip with the command name the instant you hover an icon — useful for quickly verifying you're about to click the right command. Extension-owned icons (numpad keys, CAD keyboard header buttons, radial-menu center button) also gained tooltips.
-
-### Collapsible sketch panel
-
-While editing a sketch, Onshape shows a persistent options panel (sketch plane, imprinting/constraints/expressions/errors checkboxes). Onshape Mitigator adds a chevron button to the panel's title bar that collapses everything below the header — the **✓ finish** and **✗ cancel** buttons remain visible and usable. The collapsed state is persisted across sessions.
-
-### Configurable keyboard shortcuts
-
-A new **Keyboard Shortcuts** section in the settings dialog lets you rebind extension actions by pressing the desired key combination (Backspace clears, Escape cancels).
-
-Default bindings:
-
-| Shortcut      | Action                                              |
-| ------------- | --------------------------------------------------- |
-| `Alt+M`       | Open the extension menu                            |
-| `Alt+V`       | Toggle the Onshape **variables table**              |
-| `Alt+B`       | Collapse / expand the Onshape Mitigator sidebar     |
-| `Alt+Shift+T` | Collapse / expand the sketch options panel          |
-| `Alt+Shift+C` | Copy document context for AI (+ open chatbot)       |
-| *(unbound)*   | Open extension settings                             |
-
-`Alt+Shift+…` is used where Onshape already owns the plain `Alt` combination (e.g. `Alt+T` toggles the element panel, `Alt+C` opens command search).
-
-### Escape in fullscreen
-
-In supported browsers, entering fullscreen captures Escape so it cancels the active sketch tool, feature dialog, or menu first. When nothing is cancellable, Escape exits fullscreen. Hold Escape to use the browser’s emergency exit. The browser may request keyboard access; if access is denied or unsupported, standard fullscreen behavior remains.
-
-### AI-ready document context
-
-Clicking the **robot button** in the sidebar (or pressing `Alt+Shift+C`) collects a snapshot of the current document as Markdown:
-
-* Document URL and IDs (document, workspace/version/microversion, element)
-* Document and element names, current toolbar mode, active tool
-* Whether a feature dialog is open
-* Current selections (via Onshape's Angular selection service)
-* Feature list and variable-table contents, where reachable in the DOM
-
-The snapshot ends with a note telling the assistant you'll follow up with your actual question, then is copied to the clipboard and your configured chatbot opens in a new tab.
-
-The **AI Assistant** settings section configures the chatbot URL and whether it opens automatically. If the URL contains `{context}`, the Markdown is URL-encoded into it — e.g. `https://chatgpt.com/?q={context}` sends the context as the first message (the follow-up note prevents premature answers). Without a placeholder, the chatbot opens and you paste with `Ctrl+V`.
-
-> **Privacy note:** context collection is fully local and only happens when you trigger it. The only outbound action is opening the chatbot URL you configured — nothing is sent anywhere else.
-
----
-
-## Installation
-
-This fork is not published to a store — load it unpacked:
-
-```bash
-npm install
+```sh
+npm ci
 npm run build
 ```
 
-Then in Chrome/Edge: `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select the `dist/` directory. Open an Onshape document and the sidebar will appear.
+Open `chrome://extensions` or `edge://extensions`, enable Developer mode, choose **Load unpacked**, and select `dist/`. Reload existing Onshape tabs after installation or updating. This version is distributed unpacked; no store publishing is configured.
 
-For the published upstream extension, see the [Rally for Onshape Chrome Web Store listing](https://chromewebstore.google.com/detail/rally-for-onshape/hanbmgaepnkkmmgafdpfocnjhfccckoh).
+Click the browser extension icon to open a popup anchored to that icon. `Alt+M` opens the same popup when the toolbar is available. In browser or page fullscreen, the shortcut toggles a matching menu at the upper-right edge of the page; this also serves as a fallback if the browser cannot open its popup. Both menus provide **Copy context for AI**, **Settings**, and **Disable extension**. Settings opens in the Onshape tab. When disabled, the icon or menu shortcut still exposes **Enable extension**. Changing enabled state reloads open Onshape tabs.
 
----
+The extension runs on `https://*.onshape.com/*`; modeling helpers activate on document pages. It leaves Onshape's theme, canvas, native shortcuts, and normal editing controls alone.
 
-## Development
+## Shortcuts and settings
 
-```bash
-npm install          # install dependencies
-npm run build        # build the extension into dist/
-npm run safari:build # build the Safari version
-npm run safari:sync  # sync Safari assets
+| Default       | Action                                   |
+| ------------- | ---------------------------------------- |
+| `Alt+M`       | Toggle extension menu                    |
+| `Alt+V`       | Toggle variables table                   |
+| `Alt+Shift+T` | Collapse/expand sketch options           |
+| `Alt+Shift+C` | Copy context and optionally open chatbot |
+| Unbound       | Open settings                            |
+
+In Settings, click a binding and press a new combination. Backspace clears; Escape cancels recording. Duplicate assignments are rejected. **Save settings** commits changes; Cancel discards them. Shortcuts do not fire while typing in Onshape fields or editing extension settings. Some browser/OS-reserved combinations cannot be overridden.
+
+## Context sharing
+
+Collection happens only after a copy action. The clipboard receives the full Markdown snapshot. ChatGPT is the default destination (`https://chatgpt.com/?q={context}`), with automatic opening enabled. You can change the HTTP/HTTPS URL or turn opening off. A URL containing `{context}` shares a URL-encoded snapshot with that website; URLs are capped at 6,000 characters by shortening context. Without the placeholder, paste the clipboard into the chatbot yourself.
+
+Selections and toolbar state depend on Onshape's internal Angular services. If unavailable, copying still includes reachable DOM and URL information. Feature and variable lists include only rows accessible in the current DOM, not a complete model export. Clipboard failure is reported and does not open the chatbot. No analytics, accounts, API keys, backend, or background document uploads are used.
+
+## Updating from the fork
+
+When the browser retains the extension ID, the port migrates enabled state, retained shortcut bindings, sketch-collapse state, and chatbot settings. Sidebar-specific shortcuts and other Rally preferences are ignored. A new extension ID starts with defaults; browser storage is isolated per extension. There is no cross-installation settings transfer.
+
+The pen sidebar, keypad, floating actions, themes, canvas backgrounds, and fullscreen helpers are no longer part of Mitigator. Firefox and Safari are deferred.
+
+## Development and verification
+
+```sh
+npm ci
+npm run typecheck
+npm test
+npm run test:e2e
+npm run test:extension
+npm run build
 ```
 
-Built with React, TypeScript, Vite, Tailwind CSS, and Manifest V3. A page-context bridge (`public/onshape-page-bridge.js`) taps Onshape's AngularJS injector for selections, commands, and events; settings persist in `browser.storage.local`.
+Browser tests require Chromium: `npx playwright install chromium`, or set `CHROME_PATH` to a system Chromium/Chrome executable. See [tests](tests/README.md) and [build and verification](docs/build-and-verify.md).
 
----
+The architecture separates isolated content UI, a small local settings store, DOM helpers, and a read-only page-context adapter. Bridge requests are restricted to state and selection reads; no general command or broadcast endpoint is exposed. Initial state is read explicitly, then refreshed and updated by scoped Angular event listeners. DOM helpers work without bridge readiness.
 
-## Security & privacy
+## Attribution and independence
 
-The extension runs locally in your browser: no telemetry, no analytics, no account required. Settings are stored only in browser extension storage. The AI-context feature collects document state solely on explicit user action and transmits it only by opening the chatbot URL you configured.
+The extension began as a fork of [Rally for Onshape](https://github.com/RileyDavidson-Evans/onshape-plus), by Riley Davidson-Evans. The standalone port selectively reuses MIT-licensed code and command-label data; it does not include or depend on the Rally application. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
-Upstream's security documentation still applies:
-
-* [Security Policy](./SECURITY.md)
-* [Security Overview](./docs/security-overview.md)
-* [Build & Verify Guide](./docs/build-and-verify.md)
-
----
-
-## Disclaimer
-
-Onshape Mitigator is an independent community project and is not affiliated with, endorsed by, or sponsored by Onshape, PTC, or the Rally for Onshape project.
-
-All trademarks are the property of their respective owners.
-
----
-
-## License
-
-Licensed under the MIT License, same as upstream.
-
-Click the extension icon on an Onshape tab to show or hide the floating menu. The menu starts hidden. Choose **Disable extension** to turn off Onshape Mitigator on all Onshape tabs (open tabs reload). Click the extension icon again and choose **Enable extension** to turn it back on.
+Onshape Mitigator is an independent community project, unaffiliated with Onshape, PTC, or Rally for Onshape. Trademarks belong to their owners.

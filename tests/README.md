@@ -1,56 +1,30 @@
-# Regression tests
+# Standalone extension checks
 
-These tests cover all five failures documented in
-[PR #6](https://github.com/philipvibecodes-maker/onshape-mitigator/pull/6).
-
-Run with Node 22.12+ (tested with Node 24):
+Run with Node 22.12+ or Node 24:
 
 ```sh
 npm ci
+npx playwright install chromium
+npm run typecheck
 npm test
 npm run test:e2e
-npm run build
+npm run test:extension
 ```
 
-The browser tests use system Chrome at /usr/bin/google-chrome when available.
-Otherwise, install Chromium with `npx playwright install chromium`.
-Set `CHROME_PATH` to use another Chromium executable.
+Browser checks prefer Playwright's Chrome for Testing installation, then system Chrome/Chromium. Set `CHROME_PATH` to choose another executable. Managed system browsers may prohibit loading unpacked extensions; the packaged test needs a browser that allows development extensions and supports CDP `Extensions.loadUnpacked` and `Extensions.triggerAction`.
 
-## Coverage and reproduction
+E2E tests run **headless by default**, including the packaged extension test. For intentional visual debugging, opt into headed browser fixtures with `npm run test:e2e -- --headed --workers=1`. Keep the default headless for normal local runs and CI. Fixture artifacts go to `test-results/e2e/`; packaged extension artifacts go to `test-results/extension/`.
 
-The unit suite checks caret selection/boundaries, cancelled and stale focus frames,
-unmount cleanup, collapse-control geometry, shadow keyboard isolation, cancellation
-of edits, and browser editing transactions. Before fixes, the initial suite had
-10 failures and four passing caret-boundary controls.
+## Unit coverage
 
-The Playwright suite loads the production entry point, components, styles, and
-keyboard guard against local Onshape-style controls. Storage and Angular bridge
-events are supplied by the fixture; no Onshape login or document changes are
-needed. The guard loads before native capture listeners, matching its manifest
-document_start registration.
+Settings migration preserves retained preferences, fills defaults, and ignores obsolete Rally actions. Tests cover exact shortcut modifiers and duplicate/malformed bindings, document URL references, partial Markdown context, Unicode-safe chatbot URL truncation, initial adapter state, unsupported requests, source/origin checks, correlated reply validation, and timeout cleanup.
 
-Browser cases reproduce native Cancel interception, settings shortcut leakage,
-both selected-text arrow failures, same-frame focus/blur, and missing Undo for
-keypad insertion, backspace, and clear in inputs and textareas. These cases were
-run and failed before the corresponding source fixes. Further checks cover
-finish/cancel after collapse, settings Escape and Undo/Redo, and native text Redo.
+## Browser fixtures
 
-The browser tests exercise actual DOM hit testing, shadow-root event retargeting,
-and browser editing history. They do not validate against the live Onshape
-application or browser extension packaging. JSDOM cannot reproduce native Undo;
-the unit suite checks editing-command delegation and Playwright checks history.
+The browser suite uses production UI, styles, keyboard guard, and page adapter against a local Onshape-shaped fixture. Only extension storage/browser-action messaging and Onshape internals are simulated. Tests exercise immediate tooltips and replaced menus, initial sketch state without toolbar events, persistent collapse, native finish/cancel hit testing, moving dialogs, mode transitions, shortcut recording and cancellation, keyboard isolation, clipboard success/failure, chatbot settings, partial state, and document navigation.
 
+## Packaged extension
 
-## Packaged extension menu test
+The packaged test loads the unmodified `dist/` in Chrome for Testing and invokes its actual browser action through CDP. It verifies the native popup, real clipboard copying, opening settings in the correct tab, shortcut popup routing, browser/page fullscreen fallbacks, storage migration, tab isolation, absence of inherited theme/keypad effects, multi-tab disable/re-enable, disabled startup, and preference retention. It also checks unavailable actions outside Onshape. The test opts into Playwright's attachment to Chromium `other` targets because headless browser-action popups use that target type. Screenshots are written under `test-results/extension/`.
 
-Run `npm run test:extension` with a recent system Chrome (or set `CHROME_PATH`).
-This builds and installs the unmodified extension in a temporary Chrome profile.
-It invokes the browser action through CDP `Extensions.triggerAction`, exercising
-Chrome's real icon-click event, background worker, messaging, content scripts,
-and persistent storage. Only the Onshape document and its bridge events are
-fixtures; this test does not log into live Onshape.
-
-Coverage includes menu visibility and repeated toggling, keypad overlap, tab
-isolation, disabling and re-enabling across multiple open tabs, disabled startup
-in a new tab, persistence after reload, and retention of user preferences.
-Screenshots are written to `test-results/extension/`.
+These checks do not log into live Onshape or establish live Chrome/Edge compatibility. The manual release checklist is in [Build and verify](../docs/build-and-verify.md).

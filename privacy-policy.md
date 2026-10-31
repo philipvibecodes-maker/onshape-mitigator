@@ -1,44 +1,11 @@
-# Privacy Policy for Rally for Onshape
+# Onshape Mitigator privacy policy
 
-Last Updated: June 2026
+Updated October 30, 2026.
 
-Rally for Onshape is a Safari extension and companion application designed to enhance the Onshape user experience on iPad.
+Settings are stored locally in browser extension storage. The extension has no telemetry, analytics, backend, user account, or access to Onshape authentication credentials.
 
-## Information We Collect
+Only a user-triggered Copy context action reads document information for sharing. It copies document URL and IDs, names, tool state, selections where available, and DOM-visible feature/variable rows to the clipboard. The snapshot is not retained in extension storage.
 
-Rally for Onshape does not collect, store, transmit, or share any personal information.
+By default, a successful copy also opens ChatGPT with context in its URL. Users may disable automatic opening or configure another HTTP/HTTPS website. A URL containing `{context}` sends the encoded snapshot to that destination, whose privacy policy applies. Without the placeholder, no snapshot is added to the URL. Clipboard contents are accessible according to the browser and operating system's normal rules.
 
-The application does not:
-
-* Require user accounts
-* Track user activity
-* Collect analytics
-* Store personal information
-* Use advertising identifiers
-* Sell or share user data
-
-## Data Processing
-
-All functionality provided by Rally for Onshape runs locally on the user's device and within the user's browser.
-
-## Third-Party Services
-
-Rally for Onshape does not use third-party analytics, advertising, or tracking services.
-
-Users may choose to access third-party websites, including Onshape and GitHub, through links provided by the application. Those services are governed by their own privacy policies.
-
-## Children's Privacy
-
-Rally for Onshape does not knowingly collect personal information from children or any users.
-
-## Changes to This Privacy Policy
-
-This Privacy Policy may be updated from time to time. Updates will be posted at this location with a revised "Last Updated" date.
-
-## Contact
-
-For questions regarding this Privacy Policy, please visit:
-
-https://github.com/RileyDavidson-Evans/onshape-plus
-
-Rally for Onshape is an independent third-party project and is not affiliated with or endorsed by Onshape.
+Questions and reports: https://github.com/philipvibecodes-maker/onshape-mitigator

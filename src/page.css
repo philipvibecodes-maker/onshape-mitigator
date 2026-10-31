@@ -1,0 +1,13 @@
+/* Only the explicitly collapsed sketch dialog is changed in Onshape. */
+#feature-dialog.mitigator-sketch-collapsed
+  .feature-dialog-main
+  > :not(.ns-dialog-header) {
+  display: none !important;
+}
+#feature-dialog.mitigator-sketch-collapsed {
+  height: auto !important;
+  min-height: 0 !important;
+}
+#feature-dialog.mitigator-sketch-collapsed osc-resize-handle {
+  display: none !important;
+}
