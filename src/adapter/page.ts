@@ -1,6 +1,11 @@
 // Read-only page-context adapter. No arbitrary command or broadcast endpoint.
 import { isRequest, RESPONSE } from "./protocol";
-import type { OnshapeState, OnshapeToolbarMode, Selection } from "../types";
+import type {
+  ModelData,
+  OnshapeState,
+  OnshapeToolbarMode,
+  Selection,
+} from "../types";
 type Service = Record<string, any>;
 type Injector = { get(name: string): Service };
 declare global {
@@ -129,6 +134,37 @@ export function readSelections(): Selection[] {
     }
   });
 }
+function readModelUrl(): string | null {
+  const match = location.pathname.match(
+    /\/documents\/([^/]+)\/(w|v)\/([^/]+)\/e\/([^/?#]+)/,
+  );
+  if (!match) return null;
+  const [, documentId, referenceType, referenceId, elementId] = match;
+  return `/api/partstudios/d/${documentId}/${referenceType}/${referenceId}/e/${elementId}`;
+}
+async function readModel(): Promise<ModelData> {
+  const base = readModelUrl();
+  if (!base) return { features: null, variables: null };
+  const readJson = async (resource: string): Promise<unknown | null> => {
+    try {
+      const response = await fetch(`${base}/${resource}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!response.ok) return null;
+      const text = await response.text();
+      if (text.length > 2_000_000) return null;
+      return JSON.parse(text) as unknown;
+    } catch {
+      return null;
+    }
+  };
+  const [features, variables] = await Promise.all([
+    readJson("features"),
+    readJson("variables"),
+  ]);
+  return { features, variables };
+}
 export function handleRead(event: MessageEvent): void {
   if (
     event.source !== window ||
@@ -137,9 +173,21 @@ export function handleRead(event: MessageEvent): void {
   )
     return;
   const { requestId, kind } = event.data;
-  let data: OnshapeState | Selection[];
+  if (kind === "model") {
+    void readModel().then((data) =>
+      window.postMessage(
+        { type: RESPONSE, requestId, kind, data },
+        location.origin,
+      ),
+    );
+    return;
+  }
+  let data: OnshapeState | Selection[] | ModelData;
   try {
-    data = kind === "state" ? readState() : readSelections();
+    data =
+      kind === "state"
+        ? readState()
+        : readSelections();
   } catch {
     data =
       kind === "state"

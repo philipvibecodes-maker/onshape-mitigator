@@ -234,6 +234,8 @@ test("copy shares full context only on request and honors chatbot preferences", 
   expect(copied).toContain("width 10 mm");
   expect(copied).toContain("Document ID: doc");
   expect(copied).toContain("Workspace mode: Sketch");
+  expect(copied).toContain("## Reconstruction data");
+  expect(copied).toContain("Native feature definitions");
   await expect
     .poll(() => page.evaluate(() => (window as any).opened.length))
     .toBe(1);

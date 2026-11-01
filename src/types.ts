@@ -4,6 +4,10 @@ export type OnshapeToolbarMode =
   | "Assembly"
   | "Drawing";
 export type Selection = { kind: string; id?: string; name?: string };
+export type ModelData = {
+  features: unknown | null;
+  variables: unknown | null;
+};
 export type OnshapeState = {
   ready: boolean;
   toolbarType: OnshapeToolbarMode | null;

@@ -1,7 +1,7 @@
-import type { OnshapeState, Selection } from "../types";
+import type { ModelData, OnshapeState, Selection } from "../types";
 export const REQUEST = "onshape-mitigator:read";
 export const RESPONSE = "onshape-mitigator:result";
-export type ReadKind = "state" | "selections";
+export type ReadKind = "state" | "selections" | "model";
 export type ReadRequest = {
   type: typeof REQUEST;
   requestId: string;
@@ -15,7 +15,7 @@ export function isRequest(value: unknown): value is ReadRequest {
     typeof v.requestId === "string" &&
     v.requestId.length > 0 &&
     v.requestId.length <= 100 &&
-    (v.kind === "state" || v.kind === "selections")
+    (v.kind === "state" || v.kind === "selections" || v.kind === "model")
   );
 }
 export function isState(value: unknown): value is OnshapeState {
@@ -41,5 +41,13 @@ export function isSelections(value: unknown): value is Selection[] {
         (s.id === undefined || typeof s.id === "string") &&
         (s.name === undefined || typeof s.name === "string"),
     )
+  );
+}
+export function isModelData(value: unknown): value is ModelData {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    "features" in value &&
+    "variables" in value
   );
 }

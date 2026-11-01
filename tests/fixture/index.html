@@ -93,6 +93,10 @@
           },
         },
       };
+      window.fetch = async (url) => ({
+        ok: true,
+        text: async () => JSON.stringify({ endpoint: String(url), features: ["Sketch 1"] }),
+      });
       window.angular = {
         element: () => ({
           injector: () =>

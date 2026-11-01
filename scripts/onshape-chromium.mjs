@@ -3,6 +3,8 @@
 import path from "node:path";
 import process from "node:process";
 import { existsSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "@playwright/test";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
@@ -11,6 +13,7 @@ const onshapeHome = "https://cad.onshape.com";
 const documentPattern = /\/documents\/[^/]+\/(?:w|v|m)\/[^/]+\/e\/[^/?#]+/;
 
 function browserExecutable() {
+  if (process.env.CHROMIUM_FLATPAK_APP) return null;
   const candidates = [
     process.env.CHROME_PATH,
     chromium.executablePath(),
@@ -35,6 +38,7 @@ Options:
 
 Environment:
   CHROME_PATH                  Chromium/Chrome executable override
+  CHROMIUM_FLATPAK_APP         Launch Chromium through Flatpak (e.g. org.chromium.Chromium)
   ONSHAPE_PROFILE_DIR          Persistent profile containing saved login
   ONSHAPE_DOCUMENT_URL         Open this document URL instead of the first one
   ONSHAPE_DOCUMENT_NAME        Open a document with this exact visible name
@@ -56,22 +60,36 @@ function args() {
 export async function signInWithSavedLogin(context, page = context.pages().find((candidate) => candidate.url().startsWith(onshapeHome))) {
   const current = page;
   if (!current) throw new Error("No Onshape page is open");
-  if (documentPattern.test(current.url()) || current.url().includes("/documents"))
-    return current;
+  if (documentPattern.test(current.url())) return current;
+
+  if (current.url().includes("/documents")) {
+    await current.waitForLoadState("domcontentloaded");
+    const signedIn = await current
+      .locator('a[href*="/documents/"][href*="/w/"]')
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const signInForm = await current
+      .locator('input[name="username"], input[placeholder="Email"], input[type="password"]')
+      .count();
+    if (signedIn && signInForm === 0) return current;
+  }
 
   if (!current.url().includes("/signin")) await current.goto(`${onshapeHome}/signin`);
   await current.waitForLoadState("domcontentloaded");
-  if (documentPattern.test(current.url()) || current.url().includes("/documents"))
-    return current;
+  if (documentPattern.test(current.url())) return current;
 
   const passwordManager = await context.newPage();
   try {
     passwordManager.setDefaultTimeout(10000);
-    await passwordManager.goto("chrome://password-manager/passwords/onshape.com");
+    await passwordManager.goto("chrome://password-manager/passwords");
 
     const usernameField = passwordManager.locator('input[aria-label="Username"]');
     const passwordField = passwordManager.locator('input[aria-label="Password"]');
     try {
+      if ((await usernameField.count()) === 0) {
+        await passwordManager.getByText("onshape.com", { exact: true }).click();
+      }
       await usernameField.waitFor();
     } catch {
       throw new Error(
@@ -114,6 +132,13 @@ export async function openDocument(page) {
     const document = requestedName
       ? page.getByText(requestedName, { exact: true }).first()
       : page.locator('a[href*="/documents/"][href*="/w/"]').first();
+    try {
+      await document.waitFor({ state: "visible", timeout: 10000 });
+    } catch {
+      throw new Error(
+        "No Onshape document was available. Sign in to an authenticated profile or set ONSHAPE_DOCUMENT_URL to an accessible document.",
+      );
+    }
     await document.click();
   }
   await page.waitForURL((url) => documentPattern.test(url.pathname));
@@ -129,18 +154,62 @@ export async function launchOnshapeChromium({ headed = false } = {}) {
     throw new Error("Set ONSHAPE_PROFILE_DIR to an authenticated Chromium profile");
   }
 
-  const context = await chromium.launchPersistentContext(profileDir, {
-    executablePath,
-    headless: !headed,
-    ignoreDefaultArgs: ["--password-store=basic", "--use-mock-keychain"],
-    args: [
-      `--disable-extensions-except=${extensionPath}`,
-      `--load-extension=${extensionPath}`,
-      "--enable-unsafe-extension-debugging",
-      "--password-store=gnome-libsecret",
-    ],
-    viewport: { width: 1440, height: 1000 },
-  });
+  let context;
+  let flatpakProcess;
+  let flatpakBrowser;
+  if (process.env.CHROMIUM_FLATPAK_APP) {
+    const port = Number(process.env.CHROMIUM_DEBUG_PORT ?? 9224);
+    flatpakProcess = spawn(
+      "flatpak",
+      [
+        "run",
+        "--command=chromium",
+        process.env.CHROMIUM_FLATPAK_APP,
+        `--user-data-dir=${profileDir}`,
+        `--remote-debugging-port=${port}`,
+        "--remote-debugging-address=127.0.0.1",
+        `--disable-extensions-except=${extensionPath}`,
+        `--load-extension=${extensionPath}`,
+        "--enable-unsafe-extension-debugging",
+        "--password-store=gnome-libsecret",
+        ...(headed ? [] : ["--headless=new"]),
+        process.env.ONSHAPE_DOCUMENT_URL || `${onshapeHome}/documents`,
+      ],
+      { stdio: "ignore", env: process.env },
+    );
+    const endpoint = `http://127.0.0.1:${port}`;
+    let lastError;
+    for (let attempt = 0; attempt < 40; attempt++) {
+      if (flatpakProcess.exitCode !== null)
+        throw new Error(`Flatpak Chromium exited with code ${flatpakProcess.exitCode}`);
+      try {
+        flatpakBrowser = await chromium.connectOverCDP(endpoint);
+        break;
+      } catch (error) {
+        lastError = error;
+        await delay(250);
+      }
+    }
+    if (!flatpakBrowser) {
+      flatpakProcess.kill("SIGTERM");
+      throw new Error(`Could not connect to Flatpak Chromium at ${endpoint}: ${lastError}`);
+    }
+    context = flatpakBrowser.contexts()[0];
+    if (!context) throw new Error("Flatpak Chromium has no default browser context");
+  } else {
+    context = await chromium.launchPersistentContext(profileDir, {
+      executablePath,
+      headless: !headed,
+      ignoreDefaultArgs: ["--password-store=basic", "--use-mock-keychain"],
+      args: [
+        `--disable-extensions-except=${extensionPath}`,
+        `--load-extension=${extensionPath}`,
+        "--enable-unsafe-extension-debugging",
+        "--password-store=gnome-libsecret",
+      ],
+      viewport: { width: 1440, height: 1000 },
+    });
+  }
   const page = context.pages()[0] ?? (await context.newPage());
   await page.goto(process.env.ONSHAPE_DOCUMENT_URL || `${onshapeHome}/documents`);
   await signInWithSavedLogin(context, page);
@@ -150,16 +219,23 @@ export async function launchOnshapeChromium({ headed = false } = {}) {
     context.serviceWorkers()[0] ??
     (await context.waitForEvent("serviceworker", { timeout: 10000 }));
   const extensionId = new URL(worker.url()).hostname;
-  return { context, page, extensionId };
+  return { context, page, extensionId, flatpakBrowser, flatpakProcess };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const options = args();
   const live = await launchOnshapeChromium(options);
   console.log(JSON.stringify({
-    browser: browserExecutable(),
+    browser: process.env.CHROMIUM_FLATPAK_APP ?? browserExecutable(),
     extensionId: live.extensionId,
     url: live.page.url(),
   }));
-  if (!options.keepOpen) await live.context.close();
+  if (!options.keepOpen) {
+    await live.context.close();
+    live.flatpakBrowser?.close();
+    if (live.flatpakProcess && live.flatpakProcess.exitCode === null) {
+      live.flatpakProcess.kill("SIGTERM");
+      await new Promise((resolve) => live.flatpakProcess.once("exit", resolve));
+    }
+  }
 }

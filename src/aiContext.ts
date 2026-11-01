@@ -3,6 +3,7 @@ import { readPage } from "./adapter/client";
 import type {
   OnshapeToolbarMode,
   Selection as ClassifiedOnshapeSelection,
+  ModelData,
 } from "./types";
 
 export type OnshapeDocumentIds = {
@@ -10,6 +11,18 @@ export type OnshapeDocumentIds = {
   referenceType: "w" | "v" | "m" | null;
   referenceId: string | null;
   elementId: string | null;
+};
+
+export type ViewportContext = {
+  camera: {
+    namedView: string | null;
+    position: number[] | null;
+    target: number[] | null;
+    up: number[] | null;
+    projection: string | null;
+  };
+  canvas: { x: number; y: number; width: number; height: number } | null;
+  visiblePanels: Array<{ label: string; x: number; y: number; width: number; height: number }>;
 };
 
 export type AiContextSnapshot = {
@@ -25,6 +38,8 @@ export type AiContextSnapshot = {
   selections: ClassifiedOnshapeSelection[];
   features: string[];
   variables: string[];
+  model: ModelData;
+  viewport: ViewportContext;
 };
 
 export function parseOnshapeUrl(href: string): OnshapeDocumentIds {
@@ -94,6 +109,185 @@ export function getCurrentSelections(
   return readPage("selections", timeoutMs);
 }
 
+function collectViewportContext(): ViewportContext {
+  const rect = (element: Element) => {
+    const bounds = element.getBoundingClientRect();
+    return {
+      x: Math.round(bounds.x),
+      y: Math.round(bounds.y),
+      width: Math.round(bounds.width),
+      height: Math.round(bounds.height),
+    };
+  };
+  const isVisible = (element: Element) => {
+    const bounds = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return (
+      bounds.width > 0 &&
+      bounds.height > 0 &&
+      style.display !== "none" &&
+      style.visibility !== "hidden" &&
+      Number(style.opacity) !== 0 &&
+      bounds.right > 0 &&
+      bounds.bottom > 0 &&
+      bounds.left < window.innerWidth &&
+      bounds.top < window.innerHeight
+    );
+  };
+
+  const canvas = document.querySelector("#canvas, #viewerdiv canvas");
+  const canvasBounds = canvas && isVisible(canvas) ? rect(canvas) : null;
+  const namedView = canvas?.getAttribute("data-view-shown") ?? null;
+  const panelSelectors = [
+    ["Feature tree", "#feature-list, [class*='feature-list']"],
+    ["Right panel", "#right-panel, [class*='right-pane']"],
+    ["Feature dialog", "#feature-dialog"],
+    ["Variables table", "[class*='variable-table']"],
+  ] as const;
+  const visiblePanels = panelSelectors.flatMap(([label, selector]) => {
+    const element = document.querySelector(selector);
+    return element && isVisible(element) ? [{ label, ...rect(element) }] : [];
+  });
+
+  return {
+    camera: {
+      namedView,
+      position: null,
+      target: null,
+      up: null,
+      projection: null,
+    },
+    canvas: canvasBounds,
+    visiblePanels,
+  };
+}
+
+const MODEL_METADATA_KEYS = new Set([
+  "nodeId",
+  "hasUserCode",
+  "namespace",
+  "libraryRelationType",
+  "parameterName",
+  "index",
+  "filter",
+  "helpParameters",
+]);
+
+const SKETCH_ANNOTATION_PARAMETER_IDS = new Set([
+  "labelRatio",
+  "labelAngle",
+  "labelDistance",
+]);
+
+const EXTRUDE_BASE_PARAMETER_IDS = new Set([
+  "domain",
+  "bodyType",
+  "operationType",
+  "entities",
+  "endBound",
+  "depth",
+  "endBoundEntityFace",
+  "endBoundEntityBody",
+  "endBoundEntityVertex",
+]);
+
+function parameterId(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const message = (value as { message?: { parameterId?: unknown } }).message;
+  return typeof message?.parameterId === "string" ? message.parameterId : null;
+}
+
+function compactFeatureParameters(value: Record<string, unknown>): unknown {
+  const message = value.message;
+  if (!message || typeof message !== "object") return value;
+  const feature = message as Record<string, unknown>;
+  if (!Array.isArray(feature.parameters)) return value;
+
+  const featureType = feature.featureType;
+  const parameters = feature.parameters as unknown[];
+  if (featureType === "extrude") {
+    const enabled = new Set(EXTRUDE_BASE_PARAMETER_IDS);
+    const flags = new Set(
+      parameters
+        .filter((item) => {
+          if (!item || typeof item !== "object") return false;
+          const p = item as { typeName?: unknown; message?: { value?: unknown } };
+          return p.typeName === "BTMParameterBoolean" && p.message?.value === true;
+        })
+        .map(parameterId)
+        .filter((id): id is string => id !== null),
+    );
+    const optionalGroups: Record<string, string[]> = {
+      hasOffset: ["hasOffset", "offsetDistance", "offsetOppositeDirection"],
+      hasExtrudeDirection: ["hasExtrudeDirection", "extrudeDirection"],
+      startOffset: ["startOffset", "startOffsetBound", "startOffsetDistance", "startOffsetOppositeDirection", "startOffsetEntity"],
+      hasDraft: ["hasDraft", "draftAngle", "draftPullDirection"],
+      hasSecondDirection: ["hasSecondDirection", "secondDirectionBound", "secondDirectionOppositeDirection", "secondDirectionDepth", "secondDirectionBoundEntityFace", "secondDirectionBoundEntityBody", "secondDirectionBoundEntityVertex"],
+      hasSecondDirectionOffset: ["hasSecondDirectionOffset", "secondDirectionOffsetDistance", "secondDirectionOffsetOppositeDirection"],
+      hasSecondDirectionDraft: ["hasSecondDirectionDraft", "secondDirectionDraftAngle", "secondDirectionDraftPullDirection"],
+    };
+    for (const [flag, ids] of Object.entries(optionalGroups))
+      if (flags.has(flag)) ids.forEach((id) => enabled.add(id));
+    if (flags.has("midplane")) enabled.add("midplane");
+    if (flags.has("oppositeDirection")) enabled.add("oppositeDirection");
+    if (flags.has("symmetric")) enabled.add("symmetric");
+    const thin = parameters.some((item) => {
+      const id = parameterId(item);
+      const p = item as { message?: { value?: unknown } };
+      return id === "bodyType" && p.message?.value === "THIN";
+    });
+    if (thin)
+      ["thickness", "thickness1", "thickness2", "surfaceEntities", "wallShape"].forEach((id) => enabled.add(id));
+
+    feature.parameters = parameters.filter((item) => {
+      const id = parameterId(item);
+      if (!id) return false;
+      if (enabled.has(id)) return true;
+      if (item && typeof item === "object") {
+        const msg = (item as { message?: { queries?: unknown[] } }).message;
+        if (Array.isArray(msg?.queries) && msg.queries.length > 0) return true;
+      }
+      return false;
+    });
+  }
+
+  return value;
+}
+
+function compactModelDefinition(value: unknown): unknown {
+  if (Array.isArray(value))
+    return value
+      .map(compactModelDefinition)
+      .filter((child) => child !== undefined);
+  if (!value || typeof value !== "object") return value;
+
+  const source = value as Record<string, unknown>;
+  if (
+    source.typeName === "BTMParameterQuantity" &&
+    SKETCH_ANNOTATION_PARAMETER_IDS.has(parameterId(source) ?? "")
+  )
+    return undefined;
+  if (source.typeName === "BTMFeature") compactFeatureParameters(source);
+  if (source.typeName === "BTMParameterQueryList") {
+    const msg = source.message as { queries?: unknown[] } | undefined;
+    if (Array.isArray(msg?.queries) && msg.queries.length === 0) return undefined;
+  }
+
+  return Object.fromEntries(
+    Object.entries(source)
+      .filter(([key, child]) => {
+        if (MODEL_METADATA_KEYS.has(key)) return false;
+        if (child === undefined || child === null) return false;
+        if (key === "parameters" && Array.isArray(child)) {
+          return child.length > 0;
+        }
+        return true;
+      })
+      .map(([key, child]) => [key, compactModelDefinition(child)])
+      .filter(([, child]) => child !== undefined),
+  );
+}
+
 function collectFeatureList(): string[] {
   const selectors = [
     "#feature-list .feature-list-item",
@@ -151,7 +345,10 @@ export async function collectAiContext(opts?: {
   toolbarType?: OnshapeToolbarMode | null;
   currentTool?: string | null;
 }): Promise<AiContextSnapshot> {
-  const selections = await getCurrentSelections().catch(() => []);
+  const [selections, model] = await Promise.all([
+    getCurrentSelections().catch(() => []),
+    readPage("model").catch(() => ({ features: null, variables: null })),
+  ]);
 
   return {
     capturedAt: new Date().toISOString(),
@@ -166,6 +363,8 @@ export async function collectAiContext(opts?: {
     selections,
     features: collectFeatureList(),
     variables: collectVariables(),
+    model,
+    viewport: collectViewportContext(),
   };
 }
 
@@ -211,6 +410,29 @@ export function formatContextAsMarkdown(snapshot: AiContextSnapshot): string {
     lines.push("- (none reported; selection data may be unavailable)");
   }
 
+  lines.push("", "## Viewport");
+  lines.push(`- View orientation/preset: ${snapshot.viewport.camera.namedView ?? "unknown"}`);
+  if (snapshot.viewport.camera.position) {
+    lines.push(`- Camera position: ${snapshot.viewport.camera.position.join(", ")}`);
+    lines.push(`- Camera target: ${snapshot.viewport.camera.target?.join(", ") ?? "unknown"}`);
+    lines.push(`- Camera up: ${snapshot.viewport.camera.up?.join(", ") ?? "unknown"}`);
+  } else {
+    lines.push("- Camera coordinates and projection: unavailable from Onshape's exposed page state");
+  }
+  if (snapshot.viewport.canvas) {
+    const { x, y, width, height } = snapshot.viewport.canvas;
+    lines.push(`- Visible modeling canvas: ${width} × ${height} CSS px at (${x}, ${y})`);
+  } else {
+    lines.push("- Visible modeling canvas: unavailable");
+  }
+  if (snapshot.viewport.visiblePanels.length) {
+    lines.push("- Visible panels:");
+    for (const panel of snapshot.viewport.visiblePanels)
+      lines.push(`  - ${panel.label}: ${panel.width} × ${panel.height} CSS px at (${panel.x}, ${panel.y})`);
+  } else {
+    lines.push("- Visible panels: none detected");
+  }
+
   if (snapshot.variables.length) {
     lines.push("", "## Variables");
     for (const v of snapshot.variables) lines.push(`- ${v}`);
@@ -219,6 +441,29 @@ export function formatContextAsMarkdown(snapshot: AiContextSnapshot): string {
   if (snapshot.features.length) {
     lines.push("", "## Feature list");
     for (const f of snapshot.features) lines.push(`- ${f}`);
+  }
+
+  lines.push("", "## Reconstruction data");
+  lines.push(
+    "The following is the document's native Part Studio definition data. It contains the feature history, feature parameters, sketch geometry/constraints, references, and variables needed to reproduce the model.",
+  );
+  if (snapshot.model.features !== null) {
+    lines.push("", "### Native feature definitions", "```json");
+    lines.push(
+      JSON.stringify(compactModelDefinition(snapshot.model.features), null, 2),
+    );
+    lines.push("```");
+  } else {
+    lines.push("- Native feature definitions unavailable in this document state.");
+  }
+  if (snapshot.model.variables !== null) {
+    lines.push("", "### Native variable definitions", "```json");
+    lines.push(
+      JSON.stringify(compactModelDefinition(snapshot.model.variables), null, 2),
+    );
+    lines.push("```");
+  } else {
+    lines.push("- Native variable definitions unavailable in this document state.");
   }
 
   lines.push(
