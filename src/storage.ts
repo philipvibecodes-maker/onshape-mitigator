@@ -17,7 +17,7 @@ export const DEFAULTS: Settings = {
     openVariablesTable: "Alt+V",
     toggleSketchToolbar: "Alt+Shift+T",
     copyAiContext: "Alt+Shift+C",
-    openSettings: "",
+    openSettings: "Alt+S",
   },
   aiChatbotUrl: "https://chatgpt.com/?q={context}",
   aiOpenAfterCopy: true,

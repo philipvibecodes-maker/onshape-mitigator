@@ -1,3 +1,22 @@
+const ENABLED_TITLE = "Open Onshape Mitigator menu";
+const DISABLED_TITLE = "Onshape Mitigator (disabled)";
+
+function updateActionState(enabled) {
+  return Promise.all([
+    chrome.action.setBadgeText({ text: enabled ? "" : "OFF" }),
+    chrome.action.setBadgeBackgroundColor({ color: enabled ? "#202124" : "#6b7280" }),
+    chrome.action.setTitle({ title: enabled ? ENABLED_TITLE : DISABLED_TITLE }),
+  ]);
+}
+
+void chrome.storage.local
+  .get("extensionEnabled")
+  .then(({ extensionEnabled }) => updateActionState(extensionEnabled !== false));
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.extensionEnabled)
+    void updateActionState(changes.extensionEnabled.newValue !== false);
+});
+
 // Toolbar clicks use the browser's icon-anchored popup. Keyboard requests use
 // the same popup unless fullscreen hides the toolbar, or opening it fails.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

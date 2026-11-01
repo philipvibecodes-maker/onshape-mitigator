@@ -29,6 +29,11 @@ input:focus-visible {
   outline: 2px solid #2268bd;
   outline-offset: 2px;
 }
+label.binding:focus-visible {
+  outline: 2px solid #2268bd;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 button:disabled {
   cursor: default;
   opacity: 0.6;
@@ -42,18 +47,29 @@ button:disabled {
   max-width: calc(100vw / var(--menu-scale, 1) - 16px);
   max-height: calc(100vh / var(--menu-scale, 1) - 16px);
   overflow-y: auto;
-  background: white;
-  border: 1px solid #bdc8d5;
+  background: #202124;
+  border: 1px solid #5f6368;
+  color: #f1f3f4;
   border-radius: 10px;
   box-shadow: 0 8px 32px #0003;
   padding: 12px;
   z-index: 2147483645;
 }
+.menu button {
+  background: #303134;
+  border-color: #5f6368;
+  color: #f1f3f4;
+}
+.menu button:hover {
+  background: #3c4043;
+}
 .menu header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  min-height: 32px;
+  margin-bottom: 12px;
+  padding-right: 44px;
 }
 .menu > button {
   display: block;
@@ -72,12 +88,26 @@ button:disabled {
 }
 .menu-status {
   margin: 10px 0 0;
-  color: #4b596a;
+  color: #bdc1c6;
   font-size: 12px;
 }
+.menu-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  margin-top: 0;
+  text-align: center;
+}
+.menu > button.menu-close {
+  display: block;
+  width: 32px;
+}
 .settings {
-  background: white;
+  background: #202124;
+  border: 1px solid #5f6368;
   border-radius: 10px;
+  color: #f1f3f4;
   box-shadow: 0 8px 32px #0004;
   padding: 20px;
   width: 540px;
@@ -106,6 +136,20 @@ input[type="url"] {
   color: inherit;
   background: white;
 }
+.settings input[type="text"],
+.settings input[type="url"] {
+  background: #303134;
+  border-color: #5f6368;
+  color: #f1f3f4;
+}
+.settings button {
+  background: #303134;
+  border-color: #5f6368;
+  color: #f1f3f4;
+}
+.settings button:hover {
+  background: #3c4043;
+}
 .binding {
   display: flex;
   align-items: center;
@@ -118,9 +162,15 @@ input[type="url"] {
   text-align: center;
   cursor: pointer;
 }
+.binding input:focus-visible {
+  outline: none;
+}
 small {
   display: block;
   color: #4b596a;
+}
+.settings small {
+  color: #bdc1c6;
 }
 .error {
   color: #a01919;

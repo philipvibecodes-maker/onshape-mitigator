@@ -21,6 +21,10 @@ afterEach(() => {
   delete window.angular;
 });
 describe("settings compatibility", () => {
+  it("uses Alt+S to open settings by default", () => {
+    expect(DEFAULTS.keyboardShortcuts.openSettings).toBe("Alt+S");
+  });
+
   it("migrates only retained preferences and fills missing bindings", () => {
     const settings = migrateSettings({
       settingsVersion: 2,
