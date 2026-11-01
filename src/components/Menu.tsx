@@ -49,11 +49,14 @@ export function Menu({
     >
       <header>
         <strong>Onshape Mitigator</strong>
-        <button aria-label="Hide menu" onClick={close}>×</button>
       </header>
       {enabled && (
         <>
-          <button disabled={!canCopy || copying} onClick={copy}>
+          <button
+            data-menu-primary
+            disabled={!canCopy || copying}
+            onClick={copy}
+          >
             {copying ? "Copying context…" : "Copy context for AI"}
           </button>
           <button disabled={!canConfigure} onClick={configure}>Settings</button>
@@ -63,6 +66,7 @@ export function Menu({
         {enabled ? "Disable extension" : "Enable extension"}
       </button>
       {status && <p className="menu-status" role="status">{status}</p>}
+      <button className="menu-close" aria-label="Hide menu" onClick={close}>×</button>
     </section>
   );
 }

@@ -1,16 +1,17 @@
 html {
   font: 14px/1.45 system-ui, sans-serif;
-  color: #182231;
-  background: white;
+  color: #f1f3f4;
+  background: #202124;
 }
 body {
   margin: 0;
   width: 250px;
   font: inherit;
   color: inherit;
+  background: #202124;
 }
 .menu-popup {
-  position: static;
+  position: relative;
   width: 100%;
   max-width: none;
   max-height: 600px;

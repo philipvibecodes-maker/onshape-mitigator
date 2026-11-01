@@ -159,7 +159,7 @@ test("fallback menu stays at the upper-right edge and fits a small viewport", as
   await expect(menu).toHaveCount(0);
 });
 
-test("shortcut recording rejects duplicates, Escape cancels recording, Cancel discards edits", async ({
+test("shortcut recording rejects duplicates, cancels with Escape, and saves immediately", async ({
   page,
 }) => {
   await openFixture(page);
@@ -168,6 +168,14 @@ test("shortcut recording rejects duplicates, Escape cancels recording, Cancel di
     name: "Toggle variables table",
     exact: true,
   });
+  const bindingLabel = binding.locator("..");
+  await expect(bindingLabel).toHaveAttribute("tabindex", "0");
+  await expect(binding).toHaveAttribute("tabindex", "-1");
+  await bindingLabel.focus();
+  await page.keyboard.press("Enter");
+  await expect(binding).toHaveValue("Press shortcut…");
+  await page.keyboard.press("Escape");
+  await expect(binding).toHaveValue("Alt+V");
   await binding.click();
   await page.keyboard.press("Alt+m");
   await expect(page.getByRole("alert")).toContainText("Already assigned");
@@ -175,14 +183,16 @@ test("shortcut recording rejects duplicates, Escape cancels recording, Cancel di
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(binding).toHaveValue("Alt+V");
   await expect(page.locator("body")).not.toHaveAttribute("data-cancelled");
-  await binding.click();
   await page.keyboard.press("Control+Shift+y");
-  await page.getByRole("button", { name: "Cancel", exact: true }).click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await expect(binding).toHaveValue("Alt+V");
   await binding.click();
+  await page.keyboard.press("Control+Shift+y");
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(binding).toHaveValue("Ctrl+Shift+Y");
+  await binding.click();
   await page.keyboard.press("Backspace");
-  await page.getByRole("button", { name: "Save settings" }).click();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   await page.reload();
   await settings(page);
   await expect(binding).toHaveValue("Unbound");
@@ -231,7 +241,7 @@ test("copy shares full context only on request and honors chatbot preferences", 
   await page
     .getByRole("checkbox", { name: "Open chatbot after copying" })
     .uncheck();
-  await page.getByRole("button", { name: "Save settings" }).click();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   await page
     .getByRole("button", { name: "Copy context for AI", exact: true })
     .click();

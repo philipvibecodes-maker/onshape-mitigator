@@ -90,6 +90,8 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
       second.getByRole("region", { name: "Onshape Mitigator menu" }),
     ).toHaveCount(0);
     await expect(popup.getByRole("button", { name: "Copy context for AI", exact: true })).toBeEnabled();
+    await popup.keyboard.press("Tab");
+    await expect(popup.getByRole("button", { name: "Copy context for AI", exact: true })).toBeFocused();
     await popup.getByRole("button", { name: "Copy context for AI", exact: true }).click();
     await expect(popup.getByRole("status")).toHaveText("Context copied for AI");
     await popup.getByRole("button", { name: "Hide menu", exact: true }).click();
@@ -109,7 +111,7 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
     await expect(
       first.getByRole("textbox", { name: "Open settings", exact: true }),
     ).toHaveValue("Ctrl+Shift+Y");
-    await first.getByRole("button", { name: "Cancel", exact: true }).click();
+    await first.getByRole("button", { name: "Close", exact: true }).click();
 
     // Alt+M uses the same native popup when the toolbar is available.
     await first.locator("h1").click();
@@ -182,6 +184,7 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
         .getByRole("button", { name: "Disable extension", exact: true })
         .click(),
     ]);
+    await expect.poll(() => worker.evaluate(() => chrome.action.getBadgeText({}))).toBe("OFF");
     for (const page of [first, second]) {
       await expect(page.locator("#mitigator-page-adapter")).toHaveCount(0);
       await expect(page.locator("#mitigator-page-style")).toHaveCount(0);
@@ -210,6 +213,7 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
         .getByRole("button", { name: "Enable extension", exact: true })
         .click(),
     ]);
+    await expect.poll(() => worker.evaluate(() => chrome.action.getBadgeText({}))).toBe("");
     for (const page of [first, second, third]) {
       await expect(page.locator("#mitigator-page-adapter")).toHaveCount(1);
       await expect(page.locator("#panel-content")).toBeHidden();

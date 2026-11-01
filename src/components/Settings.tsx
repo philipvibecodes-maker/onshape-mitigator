@@ -15,7 +15,6 @@ export function Settings({
   const [draft, setDraft] = useState(() => structuredClone(settings));
   const [recording, setRecording] = useState<ActionId | null>(null);
   const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
   const dialog = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const previous = (document.activeElement as HTMLElement)?.shadowRoot
@@ -25,7 +24,12 @@ export function Settings({
       previous?.focus();
     };
   }, []);
-  function record(id: ActionId, event: React.KeyboardEvent<HTMLInputElement>) {
+  function persist(next: SettingsValue) {
+    setDraft(next);
+    void save(next).catch(() => setError("Could not save settings. Try again."));
+  }
+  function record(id: ActionId, event: React.KeyboardEvent<HTMLElement>) {
+    if (recording !== id) return;
     event.preventDefault();
     event.stopPropagation();
     if (event.repeat || event.nativeEvent.isComposing) return;
@@ -47,31 +51,23 @@ export function Settings({
       setError(`Already assigned to ${ACTIONS[duplicate[0] as ActionId]}.`);
       return;
     }
-    setDraft({
+    persist({
       ...draft,
       keyboardShortcuts: { ...draft.keyboardShortcuts, [id]: value },
     });
     setRecording(null);
     setError("");
   }
-  async function submit() {
-    if (draft.aiChatbotUrl) {
-      try {
-        const url = new URL(draft.aiChatbotUrl.replace("{context}", "context"));
-        if (!["http:", "https:"].includes(url.protocol)) throw new Error();
-      } catch {
-        setError("Enter an HTTP or HTTPS chatbot URL.");
-        return;
-      }
+  function onBindingKeyDown(
+    id: ActionId,
+    event: React.KeyboardEvent<HTMLLabelElement>,
+  ) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      setRecording(id);
+      return;
     }
-    setSaving(true);
-    try {
-      await save(draft);
-      close();
-    } catch {
-      setError("Could not save settings. Try again.");
-      setSaving(false);
-    }
+    record(id, event);
   }
   function onKeyDown(event: React.KeyboardEvent) {
     if (event.key === "Escape" && !recording) {
@@ -81,7 +77,7 @@ export function Settings({
     if (event.key === "Tab") {
       const elements = Array.from(
         dialog.current?.querySelectorAll<HTMLElement>(
-          'button:not(:disabled), input, [tabindex="0"]',
+          'button:not(:disabled), input:not([tabindex="-1"]), [tabindex="0"]',
         ) ?? [],
       );
       const first = elements[0],
@@ -114,18 +110,23 @@ export function Settings({
           cancels recording.
         </small>
         {(Object.keys(ACTIONS) as ActionId[]).map((id) => (
-          <label className="binding" key={id}>
+          <label
+            className="binding"
+            key={id}
+            tabIndex={0}
+            onKeyDown={(event) => onBindingKeyDown(id, event)}
+          >
             {ACTIONS[id]}
             <input
               type="text"
               aria-label={ACTIONS[id]}
               readOnly
+              tabIndex={-1}
               value={
                 recording === id
                   ? "Press shortcut…"
                   : draft.keyboardShortcuts[id] || "Unbound"
               }
-              onFocus={() => setRecording(id)}
               onClick={() => setRecording(id)}
               onBlur={() => setRecording(null)}
               onKeyDown={(event) => record(id, event)}
@@ -139,7 +140,7 @@ export function Settings({
             type="text"
             value={draft.aiChatbotUrl}
             onChange={(event) =>
-              setDraft({ ...draft, aiChatbotUrl: event.target.value })
+              persist({ ...draft, aiChatbotUrl: event.target.value })
             }
           />
         </label>
@@ -152,7 +153,7 @@ export function Settings({
             type="checkbox"
             checked={draft.aiOpenAfterCopy}
             onChange={(event) =>
-              setDraft({ ...draft, aiOpenAfterCopy: event.target.checked })
+              persist({ ...draft, aiOpenAfterCopy: event.target.checked })
             }
           />{" "}
           Open chatbot after copying
@@ -168,12 +169,7 @@ export function Settings({
           </p>
         )}
         <div className="actions">
-          <button onClick={close} disabled={saving}>
-            Cancel
-          </button>
-          <button onClick={() => void submit()} disabled={saving}>
-            {saving ? "Saving…" : "Save settings"}
-          </button>
+          <button onClick={close}>Close</button>
         </div>
       </div>
     </div>
