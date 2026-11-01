@@ -38,9 +38,11 @@ History uses imperative, descriptive subjects, such as “Keep sketch collapse t
 
 When `.codegraph/` exists, use `codegraph explore "<symbol or question>"` before locating or reading code. Do not initialize an index when absent.
 
+Before declaring any implementation or bug-fix task complete, use `$onshape-browser-verify` at `/home/claude/.codex/skills/onshape-browser-verify/SKILL.md`. Build and load the final extension, interact with the changed behavior in a live Onshape document using headless Brave with remote debugging, and report the observed result. Unit tests, fixtures, and a running debug endpoint do not satisfy this requirement. If browser verification is blocked, report the blocker and request the specific help needed; do not declare the code task complete unless verification passes or the user explicitly waives it. Documentation-only changes are exempt.
+
 ## Brave Testing in This Environment
 
-The command runner uses `claude` (UID 1001), but may inherit stale desktop settings for `philip` (UID 1000). A display authorization error does not mean headed Brave is unavailable. Check `id`, `loginctl list-sessions`, and the current user's session environment before drawing conclusions. Retrieve display settings without dumping unrelated environment variables:
+The command runner uses the user `claude` (also possibly called `agents`, UID 1001), but may inherit stale desktop settings for `philip` (UID 1000). A display authorization error does not mean headed Brave is unavailable. Check `id`, `loginctl list-sessions`, and the current user's session environment before drawing conclusions. Retrieve display settings without dumping unrelated environment variables:
 
 ```sh
 XDG_RUNTIME_DIR=/run/user/1001 \
@@ -61,13 +63,13 @@ brave-browser \
   --remote-debugging-port=9222 https://cad.onshape.com
 ```
 
-For headless testing, add `--headless=new`; it does not require desktop display authorization. Select the intended profile explicitly and avoid opening the same profile concurrently. The default `claude` Brave profile contains a saved Onshape login; see the sign-in notes below. `/home/claude/.config/onshape-debug-profile` did not provide an authenticated session during testing.
+For headless testing, add `--headless=new`; it does not require desktop display authorization. Select the intended profile explicitly and avoid opening the same profile concurrently. The default `claude` (also possibly called `agents`) Brave profile contains a saved Onshape login; see the sign-in notes below. `/home/claude/.config/onshape-debug-profile` did not provide an authenticated session during testing.
 
 Verify debugging with `curl --silent --show-error http://127.0.0.1:9222/json/version`. A running debug endpoint alone does not establish Onshape login or extension functionality. When stopping test browsers, terminate only the instances started for the task, including their actual Brave processes rather than just launcher shells. Verify their debugging ports close; leave other users' browsers alone.
 
 ### Signing into Onshape
 
-Verified on 2026-10-30: the saved login in `/home/claude/.config/BraveSoftware/Brave-Browser` worked when headed Brave used `claude`'s correct display, runtime directory, and session bus. Earlier launches with the inherited UID 1000 settings showed an empty password manager. Do not conclude that credentials are missing until the profile and desktop/keyring session settings are correct.
+Verified on 2026-10-30: the saved login in `/home/claude/.config/BraveSoftware/Brave-Browser` worked when headed Brave used the `claude` (also possibly called `agents`) user's correct display, runtime directory, and session bus. Earlier launches with the inherited UID 1000 settings showed an empty password manager. Do not conclude that credentials are missing until the profile and desktop/keyring session settings are correct.
 
 1. Launch Brave with the session settings above and open `https://cad.onshape.com`. Reuse an authenticated session if available.
 2. If sign-in is required, check `brave://password-manager/passwords` for the `onshape.com` entry. Onshape uses an Email/Continue step followed by Password/Sign in.
