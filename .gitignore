@@ -36,3 +36,7 @@ xcuserdata/
 # Test artifacts
 test-results/
 playwright-report/
+
+# Local tool state
+.codegraph/
+.playwright-mcp/
