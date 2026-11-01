@@ -38,42 +38,35 @@ History uses imperative, descriptive subjects, such as “Keep sketch collapse t
 
 When `.codegraph/` exists, use `codegraph explore "<symbol or question>"` before locating or reading code. Do not initialize an index when absent.
 
-Before declaring any implementation or bug-fix task complete, use `$onshape-browser-verify` at `/home/claude/.codex/skills/onshape-browser-verify/SKILL.md`. Build and load the final extension, interact with the changed behavior in a live Onshape document using headless Brave with remote debugging, and report the observed result. Unit tests, fixtures, and a running debug endpoint do not satisfy this requirement. If browser verification is blocked, report the blocker and request the specific help needed; do not declare the code task complete unless verification passes or the user explicitly waives it. Documentation-only changes are exempt.
+Before declaring any implementation or bug-fix task complete, use `$onshape-browser-verify` at `/home/claude/.codex/skills/onshape-browser-verify/SKILL.md`. The skill describes Brave by default, but this environment's user preference is **Chromium**, using the user's Flatpak profile below. Honor that preference; do not substitute Brave, Chrome, or Chrome for Testing. Build and load the final extension, exercise the change in a live Onshape document, and report the observed result. Unit tests, fixtures, and a running debug endpoint do not satisfy this requirement. If live verification is blocked, report the specific blocker; documentation-only changes are exempt.
 
-## Brave Testing in This Environment
+## Live Onshape verification with Chromium
 
-The command runner uses the user `claude` (also possibly called `agents`, UID 1001), but may inherit stale desktop settings for `philip` (UID 1000). A display authorization error does not mean headed Brave is unavailable. Check `id`, `loginctl list-sessions`, and the current user's session environment before drawing conclusions. Retrieve display settings without dumping unrelated environment variables:
+Use the repository helper rather than launching Chromium manually. `npm run test:live` builds `dist/`, launches Chromium, attaches Playwright over CDP, signs in through the saved `onshape.com` credential if needed, and opens a requested document. It runs headless by default; for this user's live verification, use `--headed --keep-open` so the actual Chromium window and profile are in use.
+
+The saved Chromium profile is the Flatpak profile at `/home/claude/.var/app/org.chromium.Chromium/config/chromium`. This is the **user-data directory**; its `Default/` subdirectory is the default profile. Set `ONSHAPE_PROFILE_DIR` to the parent directory shown above, not to `Default/`. A known-good headed invocation is:
 
 ```sh
 XDG_RUNTIME_DIR=/run/user/1001 \
 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus \
-systemctl --user show-environment | rg '^(DISPLAY|XAUTHORITY)='
-```
-
-The following headed launch worked in this session; recheck these values after session changes:
-
-```sh
 DISPLAY=:1 \
 XAUTHORITY=/run/user/1001/gdm/Xauthority \
-XDG_RUNTIME_DIR=/run/user/1001 \
-DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus \
-brave-browser \
-  --user-data-dir=/home/claude/.config/BraveSoftware/Brave-Browser \
-  --remote-debugging-address=127.0.0.1 \
-  --remote-debugging-port=9222 https://cad.onshape.com
+ONSHAPE_PROFILE_DIR=/home/claude/.var/app/org.chromium.Chromium/config/chromium \
+CHROMIUM_FLATPAK_APP=org.chromium.Chromium \
+ONSHAPE_DOCUMENT_URL='https://cad.onshape.com/documents/<document-id>/w/<workspace-id>/e/<element-id>' \
+npm run test:live -- --headed --keep-open
 ```
 
-For headless testing, add `--headless=new`; it does not require desktop display authorization. Select the intended profile explicitly and avoid opening the same profile concurrently. The default `claude` (also possibly called `agents`) Brave profile contains a saved Onshape login; see the sign-in notes below. `/home/claude/.config/onshape-debug-profile` did not provide an authenticated session during testing.
+Set `ONSHAPE_DOCUMENT_URL` to an authorized live document to avoid landing on the documents list or testing the wrong tab. `ONSHAPE_DOCUMENT_NAME` can select a document by its visible name when no URL is supplied. The helper uses CDP port `9224` by default; `CHROMIUM_DEBUG_PORT` can override it. Confirm startup with `curl --silent --show-error http://127.0.0.1:9224/json/version`, then verify the actual Onshape editor, extension service worker/host, and changed behavior. A debug endpoint alone is not a successful check.
 
-Verify debugging with `curl --silent --show-error http://127.0.0.1:9222/json/version`. A running debug endpoint alone does not establish Onshape login or extension functionality. When stopping test browsers, terminate only the instances started for the task, including their actual Brave processes rather than just launcher shells. Verify their debugging ports close; leave other users' browsers alone.
+The command runner uses `claude` (UID 1001) but may inherit stale desktop settings for `philip` (UID 1000). Check `id`, `loginctl list-sessions`, and only the relevant environment values before diagnosing display or keyring failures. Do not dump the full environment. Recheck values after desktop-session changes. Do not launch the same profile concurrently. A temporary or incorrect profile can show first-run Terms/onboarding pages and has no saved Onshape login; check the user-data path instead of setting up a substitute profile. If a browser hangs, inspect the process command line and stop only the Chromium process launched for this task (and any orphaned launcher process); verify port `9224` closes. `flatpak kill` alone may not release the task's nested Chromium process. Leave other Chromium windows and users' browser processes alone.
 
-### Signing into Onshape
+After a rebuild or extension reload, reload the target Onshape document tab so it receives the current content script. Profiles can restore multiple tabs for the same document; identify the active target before interacting and avoid leaving duplicate task-created tabs. Open the extension popup with its normal browser control or `Alt+M`, click **Copy context for AI**, and inspect the clipboard result without logging the full document contents. Confirm key section headings, readable JSON line breaks, and required fields using only aggregate checks or short non-sensitive excerpts.
 
-Verified on 2026-10-30: the saved login in `/home/claude/.config/BraveSoftware/Brave-Browser` worked when headed Brave used the `claude` (also possibly called `agents`) user's correct display, runtime directory, and session bus. Earlier launches with the inherited UID 1000 settings showed an empty password manager. Do not conclude that credentials are missing until the profile and desktop/keyring session settings are correct.
+The current viewport capture reads DOM state without screenshots: the canvas's `data-view-shown` orientation/preset, visible canvas bounds, and detected panel bounds. Onshape's exposed page state did not provide camera position/target/up vectors, projection/zoom, or face-level visibility. Do not claim the copied context identifies which model faces are visible or contains an exact camera pose unless a supported live interface is found and verified.
 
-1. Launch Brave with the session settings above and open `https://cad.onshape.com`. Reuse an authenticated session if available.
-2. If sign-in is required, check `brave://password-manager/passwords` for the `onshape.com` entry. Onshape uses an Email/Continue step followed by Password/Sign in.
-3. Autofill through focus plus ArrowDown/Enter did not work in this session. With user authorization to use the saved login, the working fallback was to open the entry in Brave Password Manager, use Show password, transfer the saved value directly into Onshape's password field in memory, hide the password again, and submit Sign in. Obtain the account identifier from the saved entry; do not hardcode credentials in scripts.
-4. Verify success by reaching the documents page with the signed-in account menu and document list, then opening a live document. Close the password-manager tab afterward.
+### Onshape sign-in and saved credentials
 
-Never print or persist passwords, cookies, tokens, or password-manager contents in logs, screenshots, reports, or repository files. Use the browser's password-manager UI rather than reading credential databases. If an unlock prompt requires user interaction, let the user complete it.
+Reuse the authenticated Chromium profile when possible. The live helper opens `chrome://password-manager/passwords`, locates the saved `onshape.com` entry, and transfers its fields to Onshape's Email/Continue then Password/Sign in flow in memory. It does not hardcode the account name or password. If the entry is missing, the keyring is locked, or an unlock/MFA/CAPTCHA prompt requires user action, stop and request that specific help; do not bypass authentication. Do not conclude credentials are missing until the profile path and `claude` session environment are correct. A freshly restarted browser may need the sign-in flow again.
+
+Never print or persist passwords, cookies, tokens, or password-manager contents in tool output, logs, screenshots, traces, reports, or repository files. Use the browser password-manager UI rather than credential databases. Hide the password again after any in-memory transfer, close the password-manager tab, and do not include document contents in verification logs.

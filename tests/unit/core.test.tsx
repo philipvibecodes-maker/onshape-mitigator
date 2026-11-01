@@ -132,11 +132,27 @@ describe("context formatting", () => {
       selections: [],
       features: [],
       variables: [],
+      model: { features: null, variables: null },
+      viewport: {
+        camera: {
+          namedView: "Trimetric",
+          position: null,
+          target: null,
+          up: null,
+          projection: null,
+        },
+        canvas: { x: 100, y: 50, width: 800, height: 600 },
+        visiblePanels: [],
+      },
     };
     const markdown = formatContextAsMarkdown(snapshot);
     expect(markdown).toContain("Workspace mode: unknown");
     expect(markdown).toContain("selection data may be unavailable");
     expect(markdown).toContain("please wait for it");
+    expect(markdown).toContain("Native feature definitions unavailable");
+    expect(markdown).toContain("View orientation/preset: Trimetric");
+    expect(markdown).toContain("800 × 600 CSS px");
+    expect(markdown).toContain("Camera coordinates and projection: unavailable");
   });
   it("caps encoded context safely, including emoji and split surrogate pairs", () => {
     const url = buildChatbotUrl(

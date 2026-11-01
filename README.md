@@ -5,7 +5,7 @@ A small standalone Chrome and Edge extension that makes Onshape easier to learn 
 - **Instant tooltips:** hovering an icon in Onshape's `s` shortcut menu immediately shows its command name.
 - **Collapsible sketch panel:** collapse sketch options while leaving native finish/cancel controls available. The preference persists.
 - **Configurable shortcuts:** includes toggling the variables table, which Onshape cannot normally bind.
-- **AI-ready document context:** copy a Markdown snapshot of the document URL/IDs, names, toolbar/tool state, selections, and visible feature/variable lists. Optionally open a configured chatbot.
+- **AI-ready document context:** copy a Markdown snapshot of the document URL/IDs, names, toolbar/tool state, selections, visible labels, and native Part Studio feature/variable definitions suitable for reconstructing the model. Optionally open a configured chatbot.
 
 ## Install in Chrome or Edge
 
@@ -38,7 +38,7 @@ In Settings, click a binding and press a new combination. Backspace clears; Esca
 
 Collection happens only after a copy action. The clipboard receives the full Markdown snapshot. ChatGPT is the default destination (`https://chatgpt.com/?q={context}`), with automatic opening enabled. You can change the HTTP/HTTPS URL or turn opening off. A URL containing `{context}` shares a URL-encoded snapshot with that website; URLs are capped at 6,000 characters by shortening context. Without the placeholder, paste the clipboard into the chatbot yourself.
 
-Selections and toolbar state depend on Onshape's internal Angular services. If unavailable, copying still includes reachable DOM and URL information. Feature and variable lists include only rows accessible in the current DOM, not a complete model export. Clipboard failure is reported and does not open the chatbot. No analytics, accounts, API keys, backend, or background document uploads are used.
+Selections and toolbar state depend on Onshape's internal Angular services. The copy action also makes read-only same-origin requests for the current Part Studio's native feature and variable definitions; if those endpoints are unavailable, copying still includes reachable DOM and URL information and clearly marks the missing reconstruction data. Clipboard failure is reported and does not open the chatbot. No analytics, accounts, API keys, backend, or background document uploads are used.
 
 ## Updating from the fork
 
