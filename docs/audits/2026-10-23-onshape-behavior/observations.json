@@ -1,0 +1,431 @@
+{
+  "audit_started_at": "2026-10-23T06:39:34Z",
+  "audit_completed_at": "2026-10-23T07:10:01Z",
+  "elapsed_seconds": 1827,
+  "observations": [
+    {
+      "time": "2026-10-23T06:40:37.684Z",
+      "name": "Sketch cancel button hit test at 1280x800",
+      "data": [
+        {
+          "header": {
+            "x": 246,
+            "y": 79,
+            "width": 220,
+            "height": 29,
+            "top": 79,
+            "right": 466,
+            "bottom": 108,
+            "left": 246
+          },
+          "cancel": {
+            "x": 438,
+            "y": 79,
+            "width": 28,
+            "height": 28,
+            "top": 79,
+            "right": 466,
+            "bottom": 107,
+            "left": 438
+          },
+          "hit": {
+            "tag": "use",
+            "id": "",
+            "cls": {},
+            "host": false
+          },
+          "extension": false,
+          "collapse": []
+        },
+        {
+          "header": {
+            "x": 245.99609375,
+            "y": 78.994140625,
+            "width": 220,
+            "height": 28.623046875,
+            "top": 78.994140625,
+            "right": 465.99609375,
+            "bottom": 107.6171875,
+            "left": 245.99609375
+          },
+          "cancel": {
+            "x": 437.998046875,
+            "y": 78.994140625,
+            "width": 27.998046875,
+            "height": 27.998046875,
+            "top": 78.994140625,
+            "right": 465.99609375,
+            "bottom": 106.9921875,
+            "left": 437.998046875
+          },
+          "hit": {
+            "tag": "DIV",
+            "id": "onshape-extension-host",
+            "cls": "",
+            "host": true
+          },
+          "extension": true,
+          "collapse": [
+            {
+              "label": "Collapse sketch panel",
+              "rect": {
+                "x": 439.990234375,
+                "y": 80.986328125,
+                "width": 20.99609375,
+                "height": 20.99609375,
+                "top": 80.986328125,
+                "right": 460.986328125,
+                "bottom": 101.982421875,
+                "left": 439.990234375
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "time": "2026-10-23T06:40:53.504Z",
+      "name": "Native cancel control actionability",
+      "data": [
+        "clickable",
+        "locator.click: Timeout 1800ms exceeded.\nCall log:\n  - waiting for locator('#feature-dialog .ns-dialog-button-cancel')\n    - locator resolved to <div class=\"ns-dialog-button-cancel backbone-cancel\">\u2026</div>\n  - attempting click action (trial run)\n    2 \u00d7 waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <div id=\"onshape-extension-host\" rally-for-onshape-theme=\"dark\"></div> intercepts pointer events\n    - retrying click action (trial run)\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and stable\n      - e"
+      ]
+    },
+    {
+      "time": "2026-10-23T06:40:53.562Z",
+      "name": "Click native cancel location with extension",
+      "data": {
+        "dialogRemains": true,
+        "collapsed": true
+      }
+    },
+    {
+      "time": "2026-10-23T06:43:28.874Z",
+      "name": "Typing native shortcut letters in extension URL field",
+      "data": {
+        "state": {
+          "tool": "DIMENSION",
+          "sketch": true,
+          "active": "onshape-extension-host",
+          "innerActive": "INPUT",
+          "miniCount": 0
+        },
+        "value": "https://chatgpt.com/?q={context}"
+      }
+    },
+    {
+      "time": "2026-10-23T06:43:51.096Z",
+      "name": "Shadow input key leakage",
+      "data": {
+        "state": {
+          "tool": "LINESEGMENT",
+          "sketch": true,
+          "active": "onshape-extension-host",
+          "innerActive": "INPUT",
+          "miniCount": 0
+        },
+        "value": "https://chatgpt.com/?q={context}",
+        "keys": [
+          {
+            "key": "l",
+            "target": "onshape-extension-host",
+            "path": [
+              "INPUT",
+              "DIV",
+              "DIV"
+            ],
+            "prevented": false
+          }
+        ]
+      }
+    },
+    {
+      "time": "2026-10-23T06:43:51.711Z",
+      "name": "Stock native text field preserves shortcut letters",
+      "data": {
+        "state": {
+          "tool": "newSketch",
+          "sketch": true,
+          "active": "",
+          "miniCount": 0
+        },
+        "value": "lsd"
+      }
+    },
+    {
+      "time": "2026-10-23T06:47:45.840Z",
+      "name": "Native dimension editor visibility",
+      "data": [
+        {
+          "value": "25 mm",
+          "hit": "INPUT"
+        },
+        {
+          "value": "25",
+          "hit": "INPUT"
+        }
+      ]
+    },
+    {
+      "time": "2026-10-23T06:47:59.978Z",
+      "name": "Hardware vs virtual Escape from auto dimension",
+      "data": [
+        {
+          "editor": false,
+          "tool": "LINESEGMENT",
+          "sketch": true
+        },
+        {
+          "editor": false,
+          "tool": "LINESEGMENT",
+          "sketch": true
+        }
+      ]
+    },
+    {
+      "time": "2026-10-23T06:49:18.906Z",
+      "name": "Shortcut menu tooltip labels",
+      "data": [
+        {
+          "icon": "new-sketch-button",
+          "tooltip": "Sketch",
+          "opacity": "0.316132"
+        },
+        {
+          "icon": "extrude-button",
+          "tooltip": "Extrude",
+          "opacity": "1"
+        },
+        {
+          "icon": "revolve-button",
+          "tooltip": "Revolve",
+          "opacity": "1"
+        },
+        {
+          "icon": "sweep-button",
+          "tooltip": "Sweep",
+          "opacity": "1"
+        },
+        {
+          "icon": "loft-button",
+          "tooltip": "Loft",
+          "opacity": "1"
+        },
+        {
+          "icon": "fillet-button",
+          "tooltip": "Fillet",
+          "opacity": "1"
+        },
+        {
+          "icon": "chamfer-button",
+          "tooltip": "Chamfer",
+          "opacity": "1"
+        },
+        {
+          "icon": "hole-button",
+          "tooltip": "Hole",
+          "opacity": "1"
+        },
+        {
+          "icon": "boolean-bodies-button",
+          "tooltip": "Boolean",
+          "opacity": "1"
+        },
+        {
+          "icon": "transform-button",
+          "tooltip": "Transform",
+          "opacity": "1"
+        }
+      ]
+    },
+    {
+      "time": "2026-10-23T06:49:43.550Z",
+      "name": "Typing into extension field outside sketch",
+      "data": {
+        "before": {
+          "sketch": false,
+          "active": "onshape-extension-host",
+          "innerActive": "INPUT",
+          "miniCount": 0
+        },
+        "after": {
+          "sketch": false,
+          "active": "onshape-extension-host",
+          "innerActive": "INPUT",
+          "miniCount": 0
+        },
+        "value": "https://chatgpt.com/?q={context}e",
+        "nativeDialog": 0
+      }
+    },
+    {
+      "time": "2026-10-23T06:50:32.694Z",
+      "name": "Immediate native input focus and blur leaves keypad visible",
+      "data": {
+        "active": "BODY",
+        "filterFocused": false,
+        "keyboard": true
+      }
+    },
+    {
+      "time": "2026-10-23T06:51:23.061Z",
+      "name": "Keypad focus/blur timing matrix",
+      "data": [
+        {
+          "blurDelayMs": 0,
+          "ghostKeypads": 5,
+          "trials": 5
+        },
+        {
+          "blurDelayMs": 1,
+          "ghostKeypads": 5,
+          "trials": 5
+        },
+        {
+          "blurDelayMs": 5,
+          "ghostKeypads": 1,
+          "trials": 5
+        },
+        {
+          "blurDelayMs": 10,
+          "ghostKeypads": 0,
+          "trials": 5
+        },
+        {
+          "blurDelayMs": 20,
+          "ghostKeypads": 0,
+          "trials": 5
+        },
+        {
+          "blurDelayMs": 40,
+          "ghostKeypads": 0,
+          "trials": 5
+        }
+      ]
+    },
+    {
+      "time": "2026-10-23T06:51:48.651Z",
+      "name": "Native vs keypad Right with selected text",
+      "data": [
+        {
+          "value": "12345",
+          "start": 4,
+          "end": 4
+        },
+        {
+          "value": "12345",
+          "start": 2,
+          "end": 2
+        }
+      ]
+    },
+    {
+      "time": "2026-10-23T06:51:48.748Z",
+      "name": "Native vs keypad Left with selected text",
+      "data": [
+        {
+          "value": "12345",
+          "start": 1,
+          "end": 1
+        },
+        {
+          "value": "12345",
+          "start": 0,
+          "end": 0
+        }
+      ]
+    },
+    {
+      "time": "2026-10-23T06:52:03.420Z",
+      "name": "Selected-text ArrowRight then insert 9 changes result",
+      "data": {
+        "stock": "123495",
+        "extension": "129345"
+      }
+    },
+    {
+      "time": "2026-10-23T07:01:02.368Z",
+      "name": "Native and keypad text before Undo",
+      "data": {
+        "stock": "123",
+        "extension": "123"
+      }
+    },
+    {
+      "time": "2026-10-23T07:01:02.439Z",
+      "name": "Native and keypad text after Undo",
+      "data": {
+        "stock": "1",
+        "extension": "123"
+      }
+    },
+    {
+      "time": "2026-10-23T07:02:05.055Z",
+      "name": "Same Brave browser with extension disabled",
+      "data": {
+        "extension": false,
+        "cancelHit": "use",
+        "clickable": true
+      }
+    },
+    {
+      "time": "2026-10-23T07:03:03.255Z",
+      "name": "Same-Brave native versus virtual text Undo",
+      "data": {
+        "hardware": {
+          "before": "123",
+          "after": "12"
+        },
+        "keypad": {
+          "before": "12123",
+          "after": "12123"
+        }
+      }
+    },
+    {
+      "time": "2026-10-23T07:03:25.934Z",
+      "name": "Fresh native input: keypad text has no Undo entry",
+      "data": {
+        "before": "123",
+        "after": "123"
+      }
+    },
+    {
+      "time": "2026-10-23T07:07:25.534Z",
+      "name": "Final Cancel regression with original preferences",
+      "data": {
+        "hit": "onshape-extension-host",
+        "sketch": "Sketch 4",
+        "size": [
+          1587,
+          852
+        ]
+      }
+    },
+    {
+      "time": "2026-10-23T07:07:56.627Z",
+      "name": "No temporary sketch features remain",
+      "data": {
+        "stockFeatures": "Features (4)\nDefault geometry\nOrigin\nTop\nFront\nRight",
+        "braveFeatures": "Features (8)\nDefault geometry\nOrigin\nTop\nFront\nRight\nSketch 1\nSketch 2\nSketch 3\nSketch 4",
+        "temporarySketch5": 0
+      }
+    },
+    {
+      "time": "2026-10-23T07:07:56.697Z",
+      "name": "Preferences restored exactly",
+      "data": {
+        "match": true,
+        "settings": {
+          "floatingNumpadMode": "off",
+          "hasSeenWelcomeDialog": true,
+          "penSidebarCollapsed": true,
+          "toolbarPosition": {
+            "x": 248,
+            "y": 553
+          }
+        }
+      }
+    }
+  ]
+}

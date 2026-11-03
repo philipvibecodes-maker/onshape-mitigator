@@ -1,0 +1,80 @@
+{
+  "8222": {
+    "completed_samples": 39,
+    "last_cycle": 40,
+    "first_metrics": {
+      "JSEventListeners": 764,
+      "Nodes": 14348,
+      "JSHeapUsedSize": 88451720
+    },
+    "last_metrics": {
+      "JSEventListeners": 3053,
+      "Nodes": 30691,
+      "JSHeapUsedSize": 118801344
+    },
+    "errors": [
+      {
+        "cycle": 36,
+        "port": 8222,
+        "error": "locator.click: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#canvas')\u001b[22m\n"
+      },
+      {
+        "cycle": 37,
+        "port": 8222,
+        "error": "locator.click: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Assembly 1', { exact: true }).last()\u001b[22m\n\u001b[2m    - locator resolved to <span ng-show=\"!$ctrl.isRenaming\" ng-bind-html=\"$ctrl.displayName\" class=\"os-tab-name extended-child-tooltip\">Assembly 1</span>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - performing click action\u001b[22m\n"
+      },
+      {
+        "cycle": 37,
+        "port": 8222,
+        "error": "locator.click: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Part Studio 1', { exact: true }).last()\u001b[22m\n\u001b[2m    - locator resolved to <span ng-show=\"!$ctrl.isRenaming\" ng-bind-html=\"$ctrl.displayName\" class=\"os-tab-name extended-child-tooltip\">Part Studio 1</span>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n"
+      }
+    ],
+    "host_counts": [
+      0
+    ]
+  },
+  "9222": {
+    "completed_samples": 39,
+    "last_cycle": 40,
+    "first_metrics": {
+      "JSEventListeners": 1832,
+      "Nodes": 31276,
+      "JSHeapUsedSize": 103301432
+    },
+    "last_metrics": {
+      "JSEventListeners": 3993,
+      "Nodes": 50141,
+      "JSHeapUsedSize": 136065124
+    },
+    "errors": [
+      {
+        "cycle": 6,
+        "port": 9222,
+        "error": "page.waitForFunction: Timeout 5000ms exceeded."
+      },
+      {
+        "cycle": 18,
+        "port": 9222,
+        "error": "page.waitForFunction: Timeout 5000ms exceeded."
+      },
+      {
+        "cycle": 36,
+        "port": 9222,
+        "error": "locator.click: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#canvas')\u001b[22m\n"
+      },
+      {
+        "cycle": 37,
+        "port": 9222,
+        "error": "locator.click: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Assembly 1', { exact: true }).last()\u001b[22m\n\u001b[2m    - locator resolved to <span ng-show=\"!$ctrl.isRenaming\" ng-bind-html=\"$ctrl.displayName\" class=\"os-tab-name extended-child-tooltip\">Assembly 1</span>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - performing click action\u001b[22m\n\u001b[2m    - click action done\u001b[22m\n\u001b[2m    - waiting for scheduled navigations to finish\u001b[22m\n"
+      },
+      {
+        "cycle": 37,
+        "port": 9222,
+        "error": "locator.click: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('Part Studio 1', { exact: true }).last()\u001b[22m\n\u001b[2m    - locator resolved to <span ng-show=\"!$ctrl.isRenaming\" ng-bind-html=\"$ctrl.displayName\" class=\"os-tab-name extended-child-tooltip\">Part Studio 1</span>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n"
+      }
+    ],
+    "host_counts": [
+      1
+    ]
+  }
+}
