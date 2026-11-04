@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://127.0.0.1:4173; img-src 'none'; font-src 'none'; form-action 'none'; frame-src 'none'; base-uri 'none'" />
+    <title>Onshape Mitigator offline states</title>
+    <style>
+      body { font: 16px system-ui; max-width: 900px; margin: 48px auto; padding: 0 24px; color: #202939; }
+      button, input { font: inherit; margin: 8px 12px 8px 0; }
+      li { margin: 14px 0; }
+      #error { color: #a01919; }
+    </style>
+  </head>
+  <body>
+    <h1>Offline test states</h1>
+    <p>Open a capture exported from Mitigator settings, or choose a saved state below. No Onshape account is needed.</p>
+    <label>Open state JSON <input id="state-file" type="file" accept=".json,application/json" /></label>
+    <p id="error" role="alert"></p>
+    <ul id="states"></ul>
+    <p>To add a state to the regression suite, copy its JSON file into <code>tests/states/</code>. Reload this page to see it here.</p>
+    <p>The replay runs the current plugin on a static DOM and recorded adapter data. Model rendering and native Onshape actions are unavailable. Refresh to return here.</p>
+    <script type="module" src="/tests/replay/viewer.ts"></script>
+  </body>
+</html>

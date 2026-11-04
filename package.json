@@ -8,6 +8,8 @@
     "test": "vitest run",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
+    "states": "vite --config tests/fixture/vite.config.mts --open /tests/replay/",
+    "test:states": "playwright test tests/e2e/states.spec.ts",
     "test:extension": "npm run build && playwright test --config tests/extension/playwright.config.ts",
     "test:live": "npm run build && node scripts/onshape-chromium.mjs",
     "typecheck": "tsc --noEmit"

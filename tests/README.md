@@ -1,5 +1,10 @@
 # Standalone extension checks
 
+For reusable document captures, the local state viewer, and adding user-supplied
+states to CI, see [Capture and replay Onshape states](../docs/offline-states.md).
+Run `npm run states` to open the viewer and `npm run test:states` to test the library
+without logging into Onshape.
+
 Run with Node 22.12+ or Node 24:
 
 ```sh

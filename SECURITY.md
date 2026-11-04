@@ -4,7 +4,9 @@ Onshape Mitigator is an independent Chrome/Edge extension for `https://*.onshape
 
 Permissions are `storage` for local settings and `clipboardWrite` for explicitly requested document-context copies. Document information is shared externally only when a user requests context copying and has configured automatic chatbot opening with `{context}` in its URL. This is enabled by default for ChatGPT and can be disabled in Settings.
 
-The page-context bridge exposes only typed state and selection reads. It validates source, origin, and message shape; the client correlates responses and applies timeouts. Page scripts share the page context, so the bridge is not an authentication boundary against the Onshape page itself. It never grants access to extension storage or privileged browser APIs.
+The explicit Save test state action downloads a local JSON fixture for offline testing. Captures include document/model content and should be reviewed before sharing; no background recording or upload is performed. See [offline states](docs/offline-states.md).
+
+The page-context bridge exposes only typed state, selection, and model reads. It validates source, origin, and message shape; the client correlates responses and applies timeouts. Page scripts share the page context, so the bridge is not an authentication boundary against the Onshape page itself. It never grants access to extension storage or privileged browser APIs.
 
 No remotely hosted executable code, analytics, credential access, or arbitrary command/broadcast bridge endpoints are included. The variables shortcut clicks an existing Onshape UI button; collapse modifies only the active sketch dialog.
 

@@ -61,6 +61,14 @@ Browser tests require Chromium: `npx playwright install chromium`, or set `CHROM
 
 The architecture separates isolated content UI, a small local settings store, DOM helpers, and a read-only page-context adapter. Bridge requests are restricted to state and selection reads; no general command or broadcast endpoint is exposed. Initial state is read explicitly, then refreshed and updated by scoped Angular event listeners. DOM helpers work without bridge readiness.
 
+## Offline document states
+
+Save named document states from **Settings → Offline testing → Save test state**,
+then replay them locally without signing into Onshape. Run `npm run states` to
+open the viewer. Add reviewed JSON captures to `tests/states/` to include them in
+`npm run test:states` and the existing CI browser suite. See the
+[capture and replay workflow](docs/offline-states.md) for setup and limitations.
+
 ## Attribution and independence
 
 The extension began as a fork of [Rally for Onshape](https://github.com/RileyDavidson-Evans/onshape-plus), by Riley Davidson-Evans. The standalone port selectively reuses MIT-licensed code and command-label data; it does not include or depend on the Rally application. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

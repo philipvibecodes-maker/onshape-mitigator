@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ActionId, Settings as SettingsValue } from "../types";
 import { ACTIONS } from "../storage";
 import { eventToBinding, parseBinding } from "../shortcuts";
+import { StateCapture } from "./StateCapture";
 
 export function Settings({
   settings,
@@ -159,10 +160,11 @@ export function Settings({
           Open chatbot after copying
         </label>
         <small>
-          Context is collected only when you choose Copy context or its
+          AI context is collected when you choose Copy context or its
           shortcut. Opening a chatbot with {"{context}"} shares that context
           with the configured website.
         </small>
+        <StateCapture />
         {error && (
           <p role="alert" className="error">
             {error}
