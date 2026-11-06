@@ -2,7 +2,7 @@ import { readPage } from "./adapter/client";
 import { isModelData, isSelections, isState } from "./adapter/protocol";
 import type { ModelData, OnshapeState, Selection } from "./types";
 
-export const MAX_STATE_BYTES = 12_000_000;
+export const MAX_STATE_BYTES = 25_000_000;
 export type TestState = {
   format: "onshape-mitigator-state";
   version: 1;
@@ -64,7 +64,7 @@ export function sanitizeStateDom(root: HTMLElement): void {
 
 export function parseTestState(text: string): TestState {
   if (new TextEncoder().encode(text).length > MAX_STATE_BYTES)
-    throw new Error("State exceeds the 12 MB limit.");
+    throw new Error("State exceeds the 25 MB limit.");
   const value = JSON.parse(text);
   if (!value || value.format !== "onshape-mitigator-state" || value.version !== 1 ||
     typeof value.name !== "string" || !value.name.trim() || value.name.length > 100 ||

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseTestState, sanitizeStateDom } from "../../src/testState";
-import snapshot from "../states/synthetic-sketch.json";
+import { MAX_STATE_BYTES, parseTestState, sanitizeStateDom } from "../../src/testState";
+import snapshot from "../states/onshape-sketch-edit.json";
 
 describe("offline captures", () => {
   it("rejects unknown schemas, invalid adapter data, paths and viewport sizes", () => {
@@ -10,6 +10,13 @@ describe("offline captures", () => {
       { ...snapshot, viewport: { width: -1, height: 720 } },
     ]) expect(() => parseTestState(JSON.stringify(invalid))).toThrow();
     expect(parseTestState(JSON.stringify(snapshot)).state.toolbarType).toBe("Sketch");
+  });
+
+  it("accepts real-scale captures and rejects files over 25 MB", () => {
+    const realScale = JSON.stringify({ ...snapshot, html: "x".repeat(13_000_000) });
+    expect(new TextEncoder().encode(realScale).length).toBeLessThan(MAX_STATE_BYTES);
+    expect(parseTestState(realScale).html).toHaveLength(13_000_000);
+    expect(() => parseTestState(" ".repeat(MAX_STATE_BYTES + 1))).toThrow("25 MB");
   });
 
   it("strips executable markup, resources, credentials and extension patches on import", () => {

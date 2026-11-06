@@ -46,7 +46,7 @@ for (const filename of files(directory)) {
     }
     await page.evaluate(() => (window as any).clickExtensionIcon());
     await page.getByRole("button", { name: "Settings", exact: true }).click();
-    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Onshape Mitigator settings" })).toBeVisible();
     expect(external).toEqual([]);
   });
 }
@@ -54,7 +54,7 @@ for (const filename of files(directory)) {
 test("users can save a named state and replay the downloaded file", async ({ page }, testInfo) => {
   await page.goto("/tests/replay/");
   await page.screenshot({ path: testInfo.outputPath("state-viewer.png") });
-  await page.getByRole("button", { name: "synthetic-sketch", exact: true }).click();
+  await page.getByRole("button", { name: "onshape-sketch-edit", exact: true }).click();
   await expect(page.getByRole("button", { name: "Collapse sketch panel", exact: true })).toBeVisible();
   // Capture a collapsed panel: the export must retain the expanded native layout.
   await page.getByRole("button", { name: "Collapse sketch panel", exact: true }).click();
@@ -75,17 +75,18 @@ test("users can save a named state and replay the downloaded file", async ({ pag
   expect(saved.state.toolbarType).toBe("Sketch");
   await page.goto("/tests/replay/");
   await page.locator("#state-file").setInputFiles(filename);
-  await expect(page.locator("#panel-content")).toBeVisible();
+  const panelContent = page.locator("#feature-dialog .ns-dialog-fixed-content");
+  await expect(panelContent).toBeVisible();
   await page.getByRole("button", { name: "Collapse sketch panel", exact: true }).click();
-  await expect(page.locator("#panel-content")).toBeHidden();
+  await expect(panelContent).toBeHidden();
   await page.getByRole("button", { name: "Expand sketch panel", exact: true }).click();
-  await expect(page.locator("#panel-content")).toBeVisible();
+  await expect(panelContent).toBeVisible();
 });
 
 test("invalid imports show an error and leave the viewer usable", async ({ page }) => {
   await page.goto("/tests/replay/");
   await page.locator("#state-file").setInputFiles({ name: "invalid.json", mimeType: "application/json", buffer: Buffer.from('{"version":99}') });
   await expect(page.getByRole("alert")).toContainText("Invalid or unsupported");
-  await page.getByRole("button", { name: "synthetic-sketch", exact: true }).click();
+  await page.getByRole("button", { name: "onshape-sketch-edit", exact: true }).click();
   await expect(page.locator("#onshape-extension-host")).toHaveCount(1);
 });
