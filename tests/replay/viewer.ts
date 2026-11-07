@@ -24,7 +24,7 @@ document.querySelector<HTMLInputElement>("#state-file")!.addEventListener("chang
   const file = (event.target as HTMLInputElement).files?.[0];
   if (!file) return;
   try {
-    if (file.size > MAX_STATE_BYTES) throw new Error("State exceeds the 25 MB limit.");
+    if (file.size > MAX_STATE_BYTES) throw new Error("State exceeds the 12 MB limit.");
     await loadTestState(parseTestState(await file.text()));
   } catch (reason) { report(reason); }
 });

@@ -1,0 +1,43 @@
+{
+  "format": "onshape-mitigator-state",
+  "version": 1,
+  "name": "synthetic-part-studio",
+  "notes": "Face selection and recorded features/variables appear in copied context; no sketch toggle.",
+  "capturedAt": "2026-11-04T00:00:00.000Z",
+  "path": "/documents/demo/w/workspace/e/element",
+  "title": "Synthetic demo document",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "state": {
+    "ready": true,
+    "toolbarType": "Part Studio",
+    "currentTool": null
+  },
+  "selections": [
+    {
+      "kind": "face",
+      "id": "demo-face",
+      "name": "Top face"
+    }
+  ],
+  "model": {
+    "features": {
+      "features": [
+        {
+          "name": "Sketch 1"
+        }
+      ]
+    },
+    "variables": {
+      "variables": [
+        {
+          "name": "width",
+          "value": "10 mm"
+        }
+      ]
+    }
+  },
+  "html": "<body style=\"margin:8px;font-family:Arial\"><h1 data-testid=\"document-title\">Synthetic demo document</h1><div class=\"os-element-tab active\">Demo tab</div><canvas data-view-shown=\"front\" width=\"600\" height=\"400\"></canvas><div class=\"os-mini-toolbar-panel\" style=\"position:absolute;top:450px;left:8px\"><button class=\"os-tool-item\" icon=\"extrude-button\">Extrude</button></div></body>"
+}

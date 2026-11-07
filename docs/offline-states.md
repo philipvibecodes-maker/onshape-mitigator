@@ -68,7 +68,7 @@ require new data; unsupported schema versions fail clearly instead of guessing.
 Version 1 captures include a name, notes, timestamp, title, document path, viewport
 size, toolbar state/current tool, selection, available feature and variable API
 responses, and sanitized DOM with inline computed layout/typography. Capture is
-limited to 25,000 elements and 25 MB. A document navigation during capture aborts
+limited to 25,000 elements and 12 MB. A document navigation during capture aborts
 the export. If the adapter or model endpoints are unavailable, the saved state is
 partial; the export status reports an unavailable adapter, and null model fields
 remain unavailable in replay.
@@ -86,7 +86,7 @@ UI/context regression workflow, not an offline Onshape installation or a replace
 for live release verification. Do not use it to assert that native finish/cancel
 actions actually modify a model.
 
-The checked-in `onshape-*.json` files were captured from a real Onshape document
-and reviewed before committing. They cover a Part Studio, an active sketch edit,
-and an Assembly tab. Add further reviewed captures from your authenticated browser
-using the steps above.
+The five `synthetic-*.json` files are small, invented examples for Sketch, Part
+Studio, Assembly, Drawing, and unavailable-adapter states. They exercise the
+workflow immediately; they are **not captures of a real Onshape document**. Add
+real captures from your authenticated browser using the steps above.
