@@ -1,9 +1,6 @@
 import { MAX_STATE_BYTES, parseTestState } from "../../src/testState";
 import { loadTestState } from "./load";
 
-if (location.pathname !== "/tests/replay/")
-  history.replaceState({}, "", "/tests/replay/");
-
 const captures = import.meta.glob("../states/**/*.json", { eager: true, import: "default" });
 const list = document.querySelector("#states")!;
 const error = document.querySelector("#error")!;

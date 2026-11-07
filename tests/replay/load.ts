@@ -1,15 +1,5 @@
 import { parseTestState, sanitizeStateDom, type TestState } from "../../src/testState";
 
-function fitCapturedViewport(viewport: TestState["viewport"]): void {
-  const fit = () => {
-    const scale = Math.min(1, innerWidth / viewport.width, innerHeight / viewport.height);
-    document.body.style.zoom = String(scale);
-    scrollTo(0, 0);
-  };
-  fit();
-  window.addEventListener("resize", fit);
-}
-
 export async function loadTestState(input: unknown): Promise<TestState> {
   const snapshot = parseTestState(JSON.stringify(input));
   const parsed = new DOMParser().parseFromString(snapshot.html, "text/html");
@@ -19,10 +9,8 @@ export async function loadTestState(input: unknown): Promise<TestState> {
   if (document.getElementById("onshape-extension-host"))
     throw new Error("Reload the viewer before opening another state.");
   document.body.replaceWith(document.adoptNode(parsed.body));
-  fitCapturedViewport(snapshot.viewport);
   document.title = `${snapshot.name} — offline replay`;
-  window.addEventListener("popstate", () => location.reload(), { once: true });
-  history.pushState({ offlineReplay: true }, "", snapshot.path);
+  history.replaceState({}, "", snapshot.path);
   for (let index = localStorage.length - 1; index >= 0; index--) {
     const key = localStorage.key(index)!;
     if (key.startsWith("extension:")) localStorage.removeItem(key);

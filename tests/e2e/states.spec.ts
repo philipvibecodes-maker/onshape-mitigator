@@ -90,29 +90,3 @@ test("invalid imports show an error and leave the viewer usable", async ({ page 
   await page.getByRole("button", { name: "onshape-sketch-edit", exact: true }).click();
   await expect(page.locator("#onshape-extension-host")).toHaveCount(1);
 });
-
-test("replay fits a narrow viewer and browser navigation returns to the state list", async ({ page }) => {
-  const snapshot = JSON.parse(readFileSync(path.join(directory, "onshape-part-studio.json"), "utf8"));
-  await page.setViewportSize({ width: 625, height: 1025 });
-  await page.goto("/tests/replay/");
-  await page.getByRole("button", { name: "onshape-part-studio", exact: true }).click();
-  await expect(page.locator("#onshape-extension-host")).toHaveCount(1);
-  expect(new URL(page.url()).pathname).toBe(snapshot.path);
-  const scale = Math.min(1, 625 / snapshot.viewport.width, 1025 / snapshot.viewport.height);
-  const renderedScale = await page.locator("body").evaluate((body) => Number(getComputedStyle(body).zoom));
-  expect(renderedScale).toBeCloseTo(scale, 5);
-  const share = await page.getByText("Share", { exact: true }).boundingBox();
-  expect(share).not.toBeNull();
-  expect(share!.x).toBeGreaterThanOrEqual(0);
-  expect(share!.x + share!.width).toBeLessThanOrEqual(625);
-
-  await page.goBack();
-  await expect(page.getByRole("heading", { name: "Offline test states" })).toBeVisible();
-  expect(new URL(page.url()).pathname).toBe("/tests/replay/");
-
-  await page.getByRole("button", { name: "onshape-part-studio", exact: true }).click();
-  expect(new URL(page.url()).pathname).toBe(snapshot.path);
-  await page.reload();
-  await expect(page.getByRole("heading", { name: "Offline test states" })).toBeVisible();
-  expect(new URL(page.url()).pathname).toBe("/tests/replay/");
-});

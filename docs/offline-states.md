@@ -40,9 +40,8 @@ Use unique filenames and descriptive names. To replace a state, replace its file
 to remove one, delete its file. No generated manifest needs updating.
 
 The viewer starts with clean Mitigator settings on every load. Refresh before
-opening another capture. Back and Refresh return to the saved-state list. Replays
-use the captured `viewport.width` and `viewport.height`, scaling down as needed to
-keep the full recorded layout visible; automated tests use the exact dimensions.
+opening another capture. Use the captured `viewport.width` and `viewport.height`
+for accurate layout comparisons; automated tests set these dimensions for you.
 
 ```sh
 npx playwright install chromium
