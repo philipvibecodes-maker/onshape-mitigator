@@ -2,8 +2,10 @@
 
 import path from "node:path";
 import process from "node:process";
+import { homedir } from "node:os";
 import { existsSync } from "node:fs";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { createConnection } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "@playwright/test";
 
@@ -11,9 +13,54 @@ const repoRoot = path.resolve(import.meta.dirname, "..");
 const extensionPath = path.join(repoRoot, "dist");
 const onshapeHome = "https://cad.onshape.com";
 const documentPattern = /\/documents\/[^/]+\/(?:w|v|m)\/[^/]+\/e\/[^/?#]+/;
+const defaultFlatpakApp = "org.chromium.Chromium";
+const defaultProfileDir = path.join(
+  homedir(),
+  ".var/app/org.chromium.Chromium/config/chromium",
+);
 
-function browserExecutable() {
-  if (process.env.CHROMIUM_FLATPAK_APP) return null;
+function setDesktopEnvironmentDefaults() {
+  const uid = process.getuid?.();
+  if (uid === undefined) return;
+  const runtimeDir = `/run/user/${uid}`;
+  if (existsSync(runtimeDir)) {
+    // Command runners can inherit another desktop user's paths. The browser and
+    // keyring must use the session belonging to the account running this script.
+    process.env.XDG_RUNTIME_DIR = runtimeDir;
+    process.env.DBUS_SESSION_BUS_ADDRESS = `unix:path=${runtimeDir}/bus`;
+  }
+  const session = spawnSync("systemctl", ["--user", "show-environment"], {
+    encoding: "utf8",
+    env: process.env,
+  });
+  const values = Object.fromEntries(
+    session.status === 0
+      ? session.stdout.split("\n").flatMap((line) => {
+          const index = line.indexOf("=");
+          return index > 0 ? [[line.slice(0, index), line.slice(index + 1)]] : [];
+        })
+      : [],
+  );
+  process.env.DISPLAY = values.DISPLAY || process.env.DISPLAY || ":1";
+  const xauthority = values.XAUTHORITY || `${runtimeDir}/gdm/Xauthority`;
+  if (existsSync(xauthority)) process.env.XAUTHORITY = xauthority;
+  const keyring = values.GNOME_KEYRING_CONTROL || `${runtimeDir}/keyring`;
+  if (existsSync(keyring)) process.env.GNOME_KEYRING_CONTROL = keyring;
+}
+
+function flatpakApp() {
+  if (process.env.CHROME_PATH || process.env.CHROMIUM_FLATPAK_APP === "none")
+    return null;
+  if (process.env.CHROMIUM_FLATPAK_APP)
+    return process.env.CHROMIUM_FLATPAK_APP;
+  const installed = spawnSync("flatpak", ["info", defaultFlatpakApp], {
+    stdio: "ignore",
+  }).status === 0;
+  return installed ? defaultFlatpakApp : null;
+}
+
+function browserExecutable(app) {
+  if (app) return null;
   const candidates = [
     process.env.CHROME_PATH,
     chromium.executablePath(),
@@ -24,6 +71,51 @@ function browserExecutable() {
   const executablePath = candidates.find((candidate) => existsSync(candidate));
   if (!executablePath) throw new Error("Set CHROME_PATH or install Chromium");
   return executablePath;
+}
+
+function profileProcessIds(profileDir) {
+  const result = spawnSync(
+    "pgrep",
+    ["-af", "--", `--user-data-dir=${profileDir}`],
+    { encoding: "utf8" },
+  );
+  if (result.status !== 0) return [];
+  return result.stdout
+    .trim()
+    .split("\n")
+    .map((line) => Number(line.trim().split(/\s+/, 1)[0]))
+    .filter((pid) => Number.isInteger(pid) && pid > 1 && pid !== process.pid);
+}
+
+async function stopProfileProcesses(profileDir) {
+  for (const pid of profileProcessIds(profileDir)) {
+    try {
+      process.kill(pid, "SIGTERM");
+    } catch (error) {
+      if (error.code !== "ESRCH") throw error;
+    }
+  }
+  for (let attempt = 0; attempt < 10; attempt++) {
+    if (profileProcessIds(profileDir).length === 0) return;
+    await delay(250);
+  }
+  throw new Error(
+    `Task-launched Chromium processes still hold profile ${profileDir}`,
+  );
+}
+
+function portIsOpen(port) {
+  return new Promise((resolve) => {
+    const socket = createConnection({ host: "127.0.0.1", port });
+    const done = (open) => {
+      socket.destroy();
+      resolve(open);
+    };
+    socket.setTimeout(300);
+    socket.once("connect", () => done(true));
+    socket.once("timeout", () => done(false));
+    socket.once("error", () => done(false));
+  });
 }
 
 function usage() {
@@ -37,11 +129,16 @@ Options:
   --keep-open    Leave the browser running after setup
 
 Environment:
-  CHROME_PATH                  Chromium/Chrome executable override
-  CHROMIUM_FLATPAK_APP         Launch Chromium through Flatpak (e.g. org.chromium.Chromium)
-  ONSHAPE_PROFILE_DIR          Persistent profile containing saved login
+  CHROME_PATH                  Use this executable instead of Flatpak Chromium
+  CHROMIUM_FLATPAK_APP         Flatpak app override; "none" disables Flatpak
+  CHROMIUM_DEBUG_PORT          CDP port override (default: 9224)
+  ONSHAPE_PROFILE_DIR          Profile override (default: the current user's
+                               org.chromium.Chromium Flatpak profile)
   ONSHAPE_DOCUMENT_URL         Open this document URL instead of the first one
   ONSHAPE_DOCUMENT_NAME        Open a document with this exact visible name
+
+The helper discovers the current user's desktop bus, display, keyring, and
+Xauthority settings so stale values inherited from another user are not reused.
 `);
 }
 
@@ -64,20 +161,23 @@ export async function signInWithSavedLogin(context, page = context.pages().find(
 
   if (current.url().includes("/documents")) {
     await current.waitForLoadState("domcontentloaded");
-    const signedIn = await current
-      .locator('a[href*="/documents/"][href*="/w/"]')
-      .first()
-      .isVisible()
-      .catch(() => false);
+    await current.waitForTimeout(1000);
     const signInForm = await current
       .locator('input[name="username"], input[placeholder="Email"], input[type="password"]')
       .count();
-    if (signedIn && signInForm === 0) return current;
+    if (signInForm === 0) return current;
   }
 
   if (!current.url().includes("/signin")) await current.goto(`${onshapeHome}/signin`);
   await current.waitForLoadState("domcontentloaded");
+  await current.waitForTimeout(1000);
   if (documentPattern.test(current.url())) return current;
+  if (current.url().includes("/documents")) {
+    const signInForm = await current
+      .locator('input[name="username"], input[placeholder="Email"], input[type="password"]')
+      .count();
+    if (signInForm === 0) return current;
+  }
 
   const passwordManager = await context.newPage();
   try {
@@ -143,28 +243,40 @@ export async function openDocument(page) {
   }
   await page.waitForURL((url) => documentPattern.test(url.pathname));
   await page.waitForSelector("#onshape-extension-host", { state: "attached" });
+  await page.locator("canvas").first().waitFor({ state: "visible" });
   await page.waitForTimeout(1500);
   return page;
 }
 
 export async function launchOnshapeChromium({ headed = false } = {}) {
-  const executablePath = browserExecutable();
-  const profileDir = process.env.ONSHAPE_PROFILE_DIR;
-  if (!profileDir) {
-    throw new Error("Set ONSHAPE_PROFILE_DIR to an authenticated Chromium profile");
-  }
+  setDesktopEnvironmentDefaults();
+  const app = flatpakApp();
+  const executablePath = browserExecutable(app);
+  const profileDir = process.env.ONSHAPE_PROFILE_DIR || defaultProfileDir;
+  if (!existsSync(profileDir))
+    throw new Error(`Chromium profile does not exist: ${profileDir}`);
+  if (profileProcessIds(profileDir).length)
+    throw new Error(
+      `Chromium profile is already in use: ${profileDir}. Close that browser instead of launching the profile concurrently.`,
+    );
 
   let context;
   let flatpakProcess;
   let flatpakBrowser;
-  if (process.env.CHROMIUM_FLATPAK_APP) {
-    const port = Number(process.env.CHROMIUM_DEBUG_PORT ?? 9224);
+  const port = Number(process.env.CHROMIUM_DEBUG_PORT ?? 9224);
+  if (app) {
+    if (!Number.isInteger(port) || port < 1 || port > 65535)
+      throw new Error(`Invalid CHROMIUM_DEBUG_PORT: ${process.env.CHROMIUM_DEBUG_PORT}`);
+    if (await portIsOpen(port))
+      throw new Error(
+        `CDP port ${port} is already in use. Close the earlier task browser or choose CHROMIUM_DEBUG_PORT.`,
+      );
     flatpakProcess = spawn(
       "flatpak",
       [
         "run",
         "--command=chromium",
-        process.env.CHROMIUM_FLATPAK_APP,
+        app,
         `--user-data-dir=${profileDir}`,
         `--remote-debugging-port=${port}`,
         "--remote-debugging-address=127.0.0.1",
@@ -173,15 +285,17 @@ export async function launchOnshapeChromium({ headed = false } = {}) {
         "--enable-unsafe-extension-debugging",
         "--password-store=gnome-libsecret",
         ...(headed ? [] : ["--headless=new"]),
-        process.env.ONSHAPE_DOCUMENT_URL || `${onshapeHome}/documents`,
+        `${onshapeHome}/documents`,
       ],
       { stdio: "ignore", env: process.env },
     );
     const endpoint = `http://127.0.0.1:${port}`;
     let lastError;
     for (let attempt = 0; attempt < 40; attempt++) {
-      if (flatpakProcess.exitCode !== null)
+      if (flatpakProcess.exitCode !== null) {
+        await stopProfileProcesses(profileDir).catch(() => {});
         throw new Error(`Flatpak Chromium exited with code ${flatpakProcess.exitCode}`);
+      }
       try {
         flatpakBrowser = await chromium.connectOverCDP(endpoint);
         break;
@@ -192,10 +306,16 @@ export async function launchOnshapeChromium({ headed = false } = {}) {
     }
     if (!flatpakBrowser) {
       flatpakProcess.kill("SIGTERM");
+      await stopProfileProcesses(profileDir).catch(() => {});
       throw new Error(`Could not connect to Flatpak Chromium at ${endpoint}: ${lastError}`);
     }
     context = flatpakBrowser.contexts()[0];
-    if (!context) throw new Error("Flatpak Chromium has no default browser context");
+    if (!context) {
+      await flatpakBrowser.close().catch(() => {});
+      flatpakProcess.kill("SIGTERM");
+      await stopProfileProcesses(profileDir).catch(() => {});
+      throw new Error("Flatpak Chromium has no default browser context");
+    }
   } else {
     context = await chromium.launchPersistentContext(profileDir, {
       executablePath,
@@ -210,32 +330,76 @@ export async function launchOnshapeChromium({ headed = false } = {}) {
       viewport: { width: 1440, height: 1000 },
     });
   }
-  const page = context.pages()[0] ?? (await context.newPage());
-  await page.goto(process.env.ONSHAPE_DOCUMENT_URL || `${onshapeHome}/documents`);
-  await signInWithSavedLogin(context, page);
-  await openDocument(page);
+  try {
+    const page = context.pages()[0] ?? (await context.newPage());
+    await page.goto(`${onshapeHome}/documents`);
+    await signInWithSavedLogin(context, page);
+    await openDocument(page);
 
-  const worker =
-    context.serviceWorkers()[0] ??
-    (await context.waitForEvent("serviceworker", { timeout: 10000 }));
-  const extensionId = new URL(worker.url()).hostname;
-  return { context, page, extensionId, flatpakBrowser, flatpakProcess };
+    const deadline = Date.now() + 10000;
+    let worker;
+    while (!worker && Date.now() < deadline) {
+      for (const candidate of context.serviceWorkers()) {
+        const name = await candidate
+          .evaluate(() => globalThis.chrome?.runtime?.getManifest?.().name)
+          .catch(() => null);
+        if (name === "Onshape Mitigator") {
+          worker = candidate;
+          break;
+        }
+      }
+      if (!worker) await delay(250);
+    }
+    if (!worker) throw new Error("Onshape Mitigator service worker did not start");
+    const extensionId = new URL(worker.url()).hostname;
+    return {
+      context,
+      page,
+      extensionId,
+      flatpakBrowser,
+      flatpakProcess,
+      port: app ? port : null,
+      profileDir,
+    };
+  } catch (error) {
+    await flatpakBrowser?.close().catch(() => {});
+    await context?.close().catch(() => {});
+    if (flatpakProcess && flatpakProcess.exitCode === null)
+      flatpakProcess.kill("SIGTERM");
+    if (app) await stopProfileProcesses(profileDir).catch(() => {});
+    throw error;
+  }
+}
+
+async function closeLiveBrowser(live) {
+  await live.context.close().catch(() => {});
+  await live.flatpakBrowser?.close().catch(() => {});
+  if (live.flatpakProcess && live.flatpakProcess.exitCode === null) {
+    live.flatpakProcess.kill("SIGTERM");
+    await Promise.race([
+      new Promise((resolve) => live.flatpakProcess.once("exit", resolve)),
+      delay(3000),
+    ]);
+  }
+  if (live.port) await stopProfileProcesses(live.profileDir);
+  if (live.port && await portIsOpen(live.port))
+    throw new Error(
+      `Chromium did not release CDP port ${live.port}; stop only the task-launched Chromium process.`,
+    );
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const options = args();
   const live = await launchOnshapeChromium(options);
   console.log(JSON.stringify({
-    browser: process.env.CHROMIUM_FLATPAK_APP ?? browserExecutable(),
+    browser: flatpakApp() ?? browserExecutable(null),
     extensionId: live.extensionId,
     url: live.page.url(),
   }));
-  if (!options.keepOpen) {
-    await live.context.close();
-    live.flatpakBrowser?.close();
-    if (live.flatpakProcess && live.flatpakProcess.exitCode === null) {
-      live.flatpakProcess.kill("SIGTERM");
-      await new Promise((resolve) => live.flatpakProcess.once("exit", resolve));
-    }
-  }
+  if (options.keepOpen)
+    await new Promise((resolve) => {
+      process.once("SIGINT", resolve);
+      process.once("SIGTERM", resolve);
+    });
+  await closeLiveBrowser(live);
 }

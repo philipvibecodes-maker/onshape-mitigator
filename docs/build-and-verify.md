@@ -28,10 +28,13 @@ extension, signs in through the saved `onshape.com` credential in the browser
 password manager, and opens a real document without printing credentials:
 
 ```sh
-ONSHAPE_PROFILE_DIR=/path/to/authenticated/chromium-profile npm run test:live
+ONSHAPE_DOCUMENT_URL='https://cad.onshape.com/documents/<document-id>/w/<workspace-id>/e/<element-id>' \
+npm run test:live -- --headed --keep-open
 ```
 
-Set `CHROME_PATH` to select a Chrome/Chromium executable, or use
-`--headed --keep-open` for interactive debugging. `ONSHAPE_DOCUMENT_URL` selects
-a specific document; otherwise `ONSHAPE_DOCUMENT_NAME` selects a named document
-and the first workspace document is used as a fallback.
+On this workstation the helper automatically selects Flatpak Chromium, the current
+user's saved Flatpak profile, desktop/keyring session values, and CDP port. It also
+rejects a profile or port already in use and cleans up a kept-open browser on
+Ctrl+C. Run `npm run test:live -- --help` for profile, executable, Flatpak, port,
+and document-selection overrides. `ONSHAPE_DOCUMENT_NAME` selects a named document;
+without either document selector, the first workspace document is used.
