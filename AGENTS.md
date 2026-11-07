@@ -42,31 +42,25 @@ Before declaring any implementation or bug-fix task complete, use `$onshape-brow
 
 ## Live Onshape verification with Chromium
 
-Use the repository helper rather than launching Chromium manually. `npm run test:live` builds `dist/`, launches Chromium, attaches Playwright over CDP, signs in through the saved `onshape.com` credential if needed, and opens a requested document. It runs headless by default; for this user's live verification, use `--headed --keep-open` so the actual Chromium window and profile are in use.
-
-The saved Chromium profile is the Flatpak profile at `/home/claude/.var/app/org.chromium.Chromium/config/chromium`. This is the **user-data directory**; its `Default/` subdirectory is the default profile. Set `ONSHAPE_PROFILE_DIR` to the parent directory shown above, not to `Default/`. A known-good headed invocation is:
+Use the repository helper rather than launching Chromium manually. It supplies this
+environment's Flatpak Chromium, profile, desktop-session, keyring, CDP, login, and
+cleanup defaults. Select an authorized document and run:
 
 ```sh
-XDG_RUNTIME_DIR=/run/user/1001 \
-DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus \
-DISPLAY=:1 \
-XAUTHORITY=/run/user/1001/gdm/Xauthority \
-ONSHAPE_PROFILE_DIR=/home/claude/.var/app/org.chromium.Chromium/config/chromium \
-CHROMIUM_FLATPAK_APP=org.chromium.Chromium \
 ONSHAPE_DOCUMENT_URL='https://cad.onshape.com/documents/<document-id>/w/<workspace-id>/e/<element-id>' \
 npm run test:live -- --headed --keep-open
 ```
 
-Set `ONSHAPE_DOCUMENT_URL` to an authorized live document to avoid landing on the documents list or testing the wrong tab. `ONSHAPE_DOCUMENT_NAME` can select a document by its visible name when no URL is supplied. The helper uses CDP port `9224` by default; `CHROMIUM_DEBUG_PORT` can override it. Confirm startup with `curl --silent --show-error http://127.0.0.1:9224/json/version`, then verify the actual Onshape editor, extension service worker/host, and changed behavior. A debug endpoint alone is not a successful check.
+Use `ONSHAPE_DOCUMENT_NAME` when selecting by visible name, and run
+`npm run test:live -- --help` for supported overrides. Do not launch the same
+profile concurrently or bypass the helper's profile/port conflict checks. If an
+unlock, MFA, or CAPTCHA prompt appears, request user help. Never print or persist
+passwords, cookies, tokens, password-manager contents, or full copied document
+contents. Stop only browser processes created for the task.
 
-The command runner uses `claude` (UID 1001) but may inherit stale desktop settings for `philip` (UID 1000). Check `id`, `loginctl list-sessions`, and only the relevant environment values before diagnosing display or keyring failures. Do not dump the full environment. Recheck values after desktop-session changes. Do not launch the same profile concurrently. A temporary or incorrect profile can show first-run Terms/onboarding pages and has no saved Onshape login; check the user-data path instead of setting up a substitute profile. If a browser hangs, inspect the process command line and stop only the Chromium process launched for this task (and any orphaned launcher process); verify port `9224` closes. `flatpak kill` alone may not release the task's nested Chromium process. Leave other Chromium windows and users' browser processes alone.
-
-After a rebuild or extension reload, reload the target Onshape document tab so it receives the current content script. Profiles can restore multiple tabs for the same document; identify the active target before interacting and avoid leaving duplicate task-created tabs. Open the extension popup with its normal browser control or `Alt+M`, click **Copy context for AI**, and inspect the clipboard result without logging the full document contents. Confirm key section headings, readable JSON line breaks, and required fields using only aggregate checks or short non-sensitive excerpts.
+Successful startup is not verification. Observe the real editor and canvas, the
+extension host/service worker, and the changed behavior through normal browser
+controls. Reload the document after rebuilding so it receives the current content
+script. Fixtures and a listening CDP endpoint do not satisfy the live check.
 
 The current viewport capture reads DOM state without screenshots: the canvas's `data-view-shown` orientation/preset, visible canvas bounds, and detected panel bounds. Onshape's exposed page state did not provide camera position/target/up vectors, projection/zoom, or face-level visibility. Do not claim the copied context identifies which model faces are visible or contains an exact camera pose unless a supported live interface is found and verified.
-
-### Onshape sign-in and saved credentials
-
-Reuse the authenticated Chromium profile when possible. The live helper opens `chrome://password-manager/passwords`, locates the saved `onshape.com` entry, and transfers its fields to Onshape's Email/Continue then Password/Sign in flow in memory. It does not hardcode the account name or password. If the entry is missing, the keyring is locked, or an unlock/MFA/CAPTCHA prompt requires user action, stop and request that specific help; do not bypass authentication. Do not conclude credentials are missing until the profile path and `claude` session environment are correct. A freshly restarted browser may need the sign-in flow again.
-
-Never print or persist passwords, cookies, tokens, or password-manager contents in tool output, logs, screenshots, traces, reports, or repository files. Use the browser password-manager UI rather than credential databases. Hide the password again after any in-memory transfer, close the password-manager tab, and do not include document contents in verification logs.
