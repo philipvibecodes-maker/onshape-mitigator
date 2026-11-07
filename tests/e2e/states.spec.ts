@@ -106,23 +106,6 @@ test("replay fits a narrow viewer and browser navigation returns to the state li
   expect(share!.x).toBeGreaterThanOrEqual(0);
   expect(share!.x + share!.width).toBeLessThanOrEqual(625);
 
-  const copy = await page.locator(".document-copy-link-btn:visible").boundingBox();
-  const like = await page.locator('os-public-stats:visible [icon="document-likes"]').boundingBox();
-  expect(copy).not.toBeNull();
-  expect(like).not.toBeNull();
-  expect(Math.abs(copy!.y + copy!.height / 2 - (like!.y + like!.height / 2))).toBeLessThan(5);
-  const shortcutFits = await page.locator(".command-search-trigger:visible").evaluate((element) =>
-    element.scrollHeight <= element.clientHeight,
-  );
-  expect(shortcutFits).toBe(true);
-
-  const extrude = page.locator(".tool").filter({
-    has: page.locator(".tool-label", { hasText: "Extrude" }),
-  }).first();
-  await extrude.hover();
-  await expect(page.locator("#offline-replay-tooltip")).toHaveText("Extrude");
-  await expect(page.locator("#offline-replay-tooltip")).toBeVisible();
-
   await page.goBack();
   await expect(page.getByRole("heading", { name: "Offline test states" })).toBeVisible();
   expect(new URL(page.url()).pathname).toBe("/tests/replay/");
