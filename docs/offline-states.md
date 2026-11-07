@@ -43,6 +43,7 @@ The viewer starts with clean Mitigator settings on every load. Refresh before
 opening another capture. Back and Refresh return to the saved-state list. Replays
 use the captured `viewport.width` and `viewport.height`, scaling down as needed to
 keep the full recorded layout visible; automated tests use the exact dimensions.
+Recorded toolbar labels are also exposed as basic hover tooltips in replay.
 
 ```sh
 npx playwright install chromium
