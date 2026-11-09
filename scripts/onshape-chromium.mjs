@@ -119,7 +119,7 @@ function portIsOpen(port) {
 }
 
 function usage() {
-  console.log(`Usage: npm run test:live -- [options]
+  console.log(`Usage: pnpm run test:live -- [options]
 
 Launches Chromium with the built extension, signs in through the saved
 onshape.com credential, and opens a live Onshape document.

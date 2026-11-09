@@ -97,7 +97,12 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
     const filter = first.getByRole("textbox", { name: "Native filter", exact: true });
     await filter.focus();
     await filter.press("Control+v");
-    await expect(filter).toHaveValue(/# Onshape Context/);
+    await expect(filter).toHaveValue(/^# Onshape Sketch Context/);
+    await expect(filter).toHaveValue(/Sketch 1/);
+    await expect(filter).toHaveValue(/entity-1/);
+    await expect(filter).toHaveValue(/## Native data compaction/);
+    await expect(filter).not.toHaveValue(/DO NOT COPY Extrude/);
+    await expect(filter).not.toHaveValue(/DO_NOT_COPY_VARIABLE/);
     await filter.fill("");
     popup = await icon(first);
     await expect(popup.getByRole("region", { name: "Onshape Mitigator menu" })).toHaveCSS("font-size", "14px");

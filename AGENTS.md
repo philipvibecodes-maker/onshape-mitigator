@@ -8,19 +8,19 @@ Onshape Mitigator is a Chrome/Edge Manifest V3 extension built with React, TypeS
 
 ## Build, Test, and Development Commands
 
-Use the Node version in `.nvmrc` and install dependencies with `npm ci`.
+Use the Node version in `.nvmrc` and install dependencies with `pnpm install --frozen-lockfile`.
 
-- `npm run dev`: start the Vite development server.
-- `npm run build`: build the unpacked extension, page adapter, and license files.
-- `npm run build:watch`: rebuild extension files during development.
-- `npm run typecheck`: check TypeScript without emitting files.
-- `npm test`: run Vitest unit tests.
-- `npm run test:e2e`: run Playwright browser fixtures.
-- `npm run test:extension`: build and test the packaged extension.
+- `pnpm run dev`: start the Vite development server.
+- `pnpm run build`: build the unpacked extension, page adapter, and license files.
+- `pnpm run build:watch`: rebuild extension files during development.
+- `pnpm run typecheck`: check TypeScript without emitting files.
+- `pnpm test`: run Vitest unit tests.
+- `pnpm run test:e2e`: run Playwright browser fixtures.
+- `pnpm run test:extension`: build and test the packaged extension.
 
-Install browser binaries with `npx playwright install chromium`, or select a compatible executable through `CHROME_PATH`. Load `dist/` unpacked in Chrome/Edge and reload Onshape tabs after rebuilding.
+Install browser binaries with `pnpm exec playwright install chromium`, or select a compatible executable through `CHROME_PATH`. Load `dist/` unpacked in Chrome/Edge and reload Onshape tabs after rebuilding.
 
-E2E tests run headless by default. Preserve that default for normal local runs and CI. Use `npm run test:e2e -- --headed --workers=1` only for intentional visual debugging; a single worker avoids competing headed windows.
+E2E tests run headless by default. Preserve that default for normal local runs and CI. Use `pnpm run test:e2e -- --headed --workers=1` only for intentional visual debugging; a single worker avoids competing headed windows.
 
 ## Coding Style & Naming Conventions
 
@@ -32,7 +32,7 @@ Use `*.test.tsx` for Vitest/JSDOM tests and `*.spec.ts` for Playwright scenarios
 
 ## Commit & Pull Request Guidelines
 
-History uses imperative, descriptive subjects, such as “Keep sketch collapse toggle clear of native controls.” Keep commits focused. PRs should explain the behavior change, link relevant issues, report validation and limitations, and include screenshots for visible UI changes.
+History uses imperative, descriptive subjects, such as “Keep sketch collapse toggle clear of native controls.” Keep commits focused. PRs should explain the behavior change, link relevant issues, and report validation and limitations.
 
 ## Agent Instructions
 
@@ -48,11 +48,11 @@ cleanup defaults. Select an authorized document and run:
 
 ```sh
 ONSHAPE_DOCUMENT_URL='https://cad.onshape.com/documents/<document-id>/w/<workspace-id>/e/<element-id>' \
-npm run test:live -- --headed --keep-open
+pnpm run test:live -- --headed --keep-open
 ```
 
 Use `ONSHAPE_DOCUMENT_NAME` when selecting by visible name, and run
-`npm run test:live -- --help` for supported overrides. Do not launch the same
+`pnpm run test:live -- --help` for supported overrides. Do not launch the same
 profile concurrently or bypass the helper's profile/port conflict checks. If an
 unlock, MFA, or CAPTCHA prompt appears, request user help. Never print or persist
 passwords, cookies, tokens, password-manager contents, or full copied document

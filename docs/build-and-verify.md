@@ -3,15 +3,15 @@
 ```sh
 git clone https://github.com/philipvibecodes-maker/onshape-mitigator.git
 cd onshape-mitigator
-npm ci
-npm run typecheck
-npm test
-npm run test:e2e
-npm run test:extension
-npm run build
+pnpm install --frozen-lockfile
+pnpm run typecheck
+pnpm test
+pnpm run test:e2e
+pnpm run test:extension
+pnpm run build
 ```
 
-Use Node 22.12+ or Node 24. Browser checks use Playwright Chromium or `CHROME_PATH`; install with `npx playwright install chromium` if necessary.
+Use Node 22.12+ or Node 24. Browser checks use Playwright Chromium or `CHROME_PATH`; install with `pnpm exec playwright install chromium` if necessary.
 
 Inspect `dist/manifest.json`: Chromium Manifest V3, Onshape-only content scripts, storage/clipboardWrite permissions, and a service worker. The built adapter exposes only state/selection reads. No Firefox/Safari release packages or automatic store publishing are configured.
 
@@ -29,12 +29,12 @@ password manager, and opens a real document without printing credentials:
 
 ```sh
 ONSHAPE_DOCUMENT_URL='https://cad.onshape.com/documents/<document-id>/w/<workspace-id>/e/<element-id>' \
-npm run test:live -- --headed --keep-open
+pnpm run test:live -- --headed --keep-open
 ```
 
 On this workstation the helper automatically selects Flatpak Chromium, the current
 user's saved Flatpak profile, desktop/keyring session values, and CDP port. It also
 rejects a profile or port already in use and cleans up a kept-open browser on
-Ctrl+C. Run `npm run test:live -- --help` for profile, executable, Flatpak, port,
+Ctrl+C. Run `pnpm run test:live -- --help` for profile, executable, Flatpak, port,
 and document-selection overrides. `ONSHAPE_DOCUMENT_NAME` selects a named document;
 without either document selector, the first workspace document is used.

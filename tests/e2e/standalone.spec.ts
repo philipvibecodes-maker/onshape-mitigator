@@ -340,7 +340,7 @@ test("settings text editing stays local and Escape does not cancel native dialog
   await expect(page.locator("body")).not.toHaveAttribute("data-cancelled");
 });
 
-test("copy shares full context only on request and honors chatbot preferences", async ({
+test("copy shares sketch context only on request and honors chatbot preferences", async ({
   page,
 }) => {
   await openFixture(page);
@@ -356,12 +356,33 @@ test("copy shares full context only on request and honors chatbot preferences", 
     .poll(() => page.evaluate(() => (window as any).copied.length))
     .toBe(1);
   const copied = await page.evaluate(() => (window as any).copied[0]);
-  expect(copied).toContain("Top face");
-  expect(copied).toContain("width 10 mm");
+  const nativeJson =
+    copied.match(/```json\n([\s\S]*?)\n```/)?.[1] ?? "";
+  expect(copied).toMatch(/^# Onshape Sketch Context/);
+  expect(copied).toContain("Sketch 1");
+  expect(copied).toContain("sketch-1");
+  expect(copied).toContain("entity-1");
+  expect(copied).toContain("COINCIDENT");
+  expect(copied).toContain("Sketch entity sentinel");
+  expect(copied).toContain("## Native data compaction");
+  expect(copied).toContain("Numeric `type`");
+  expect(copied).toContain("`hasOffsetDataN`");
+  expect(nativeJson).not.toContain("hasOffsetData1");
+  expect(nativeJson).not.toContain("offsetOrientation1");
+  expect(nativeJson).not.toContain("offsetDistance1");
+  expect(nativeJson).not.toContain("hasPierceParameter");
+  expect(nativeJson).not.toContain("pierceParameter");
+  expect(nativeJson).not.toContain('"parameterId": "sketchPlane"');
+  expect(nativeJson).toContain('"parameterId": "localFirst"');
+  expect(nativeJson).not.toMatch(/^\s*"type": \d+/m);
   expect(copied).toContain("Document ID: doc");
   expect(copied).toContain("Workspace mode: Sketch");
-  expect(copied).toContain("## Reconstruction data");
-  expect(copied).toContain("Native feature definitions");
+  expect(copied).not.toContain("Top face");
+  expect(copied).not.toContain("DO NOT COPY Extrude");
+  expect(copied).not.toContain("DO_NOT_COPY_VARIABLE");
+  expect(copied).not.toContain("## Feature list");
+  expect(copied).not.toContain("## Variables");
+  expect(copied).not.toContain("### Native variable definitions");
   await expect
     .poll(() => page.evaluate(() => (window as any).opened.length))
     .toBe(1);
@@ -377,6 +398,52 @@ test("copy shares full context only on request and honors chatbot preferences", 
     .poll(() => page.evaluate(() => (window as any).copied.length))
     .toBe(2);
   expect(await page.evaluate(() => (window as any).opened.length)).toBe(1);
+});
+
+test("document copies retain full model context outside sketch editing", async ({
+  page,
+}) => {
+  await openFixture(page, "Part Studio");
+  await menu(page);
+  await page
+    .getByRole("button", { name: "Copy context for AI", exact: true })
+    .click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).copied.length))
+    .toBe(1);
+  const copied = await page.evaluate(() => (window as any).copied[0]);
+  expect(copied).toMatch(/^# Onshape Context/);
+  expect(copied).toContain("## Reconstruction data");
+  expect(copied).toContain("DO NOT COPY Extrude");
+  expect(copied).toContain("DO_NOT_COPY_VARIABLE");
+  expect(copied).toContain("## Feature list");
+  expect(copied).toContain("## Variables");
+  expect(copied).toContain("### Native variable definitions");
+});
+
+test("sketch copying fails closed when the active row cannot be matched", async ({
+  page,
+}) => {
+  await openFixture(page);
+  await page.evaluate(() => {
+    document
+      .querySelector("#feature-list .edited")
+      ?.setAttribute("feature-id", "missing-sketch");
+  });
+  await menu(page);
+  await page
+    .getByRole("button", { name: "Copy context for AI", exact: true })
+    .click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).copied.length))
+    .toBe(1);
+  const copied = await page.evaluate(() => (window as any).copied[0]);
+  expect(copied).toMatch(/^# Onshape Sketch Context/);
+  expect(copied).toContain("Active sketch definition unavailable");
+  expect(copied).toContain("Sketch entity sentinel");
+  expect(copied).not.toContain("DO NOT COPY Extrude");
+  expect(copied).not.toContain("DO_NOT_COPY_VARIABLE");
+  expect(copied).not.toContain("COINCIDENT");
 });
 
 test("clipboard failure reports error and does not open chatbot", async ({

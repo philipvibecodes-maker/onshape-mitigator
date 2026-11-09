@@ -3,17 +3,17 @@
 Run with Node 22.12+ or Node 24:
 
 ```sh
-npm ci
-npx playwright install chromium
-npm run typecheck
-npm test
-npm run test:e2e
-npm run test:extension
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
+pnpm run typecheck
+pnpm test
+pnpm run test:e2e
+pnpm run test:extension
 ```
 
 Browser checks prefer Playwright's Chrome for Testing installation, then system Chrome/Chromium. Set `CHROME_PATH` to choose another executable. Managed system browsers may prohibit loading unpacked extensions; the packaged test needs a browser that allows development extensions and supports CDP `Extensions.loadUnpacked` and `Extensions.triggerAction`.
 
-E2E tests run **headless by default**, including the packaged extension test. For intentional visual debugging, opt into headed browser fixtures with `npm run test:e2e -- --headed --workers=1`. Keep the default headless for normal local runs and CI. Fixture artifacts go to `test-results/e2e/`; packaged extension artifacts go to `test-results/extension/`.
+E2E tests run **headless by default**, including the packaged extension test. For intentional visual debugging, opt into headed browser fixtures with `pnpm run test:e2e -- --headed --workers=1`. Keep the default headless for normal local runs and CI. Fixture artifacts go to `test-results/e2e/`; packaged extension artifacts go to `test-results/extension/`.
 
 ## Unit coverage
 

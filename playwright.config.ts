@@ -14,7 +14,7 @@ export default defineConfig({
     },
   },
   webServer: {
-    command: "npx vite --config tests/fixture/vite.config.mts",
+    command: "pnpm exec vite --config tests/fixture/vite.config.mts",
     url: "http://127.0.0.1:4173/tests/fixture/",
     reuseExistingServer: !process.env.CI,
   },
