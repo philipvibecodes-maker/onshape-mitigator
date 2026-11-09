@@ -26,16 +26,23 @@ export function Tooltips() {
     };
     const show = (event: Event) => {
       const item = (event.target as Element)?.closest<HTMLElement>(
-        ".os-mini-toolbar-panel .os-tool-item[icon]",
+        ".os-mini-toolbar-panel .os-tool-item[icon], " +
+          ".os-mini-toolbar-panel .tool[command-id]",
       );
       if (!item) {
         hide();
         return;
       }
-      const icon = (item.getAttribute("icon") ?? "").replace(/^svg-icon-/, "");
+      const icon = (
+        item.getAttribute("icon") ??
+        item.querySelector<HTMLElement>("[icon]")?.getAttribute("icon") ??
+        item.querySelector("use")?.getAttribute("href") ??
+        ""
+      ).replace(/^#?svg-icon-/, "");
       const label =
         item.getAttribute("aria-label") ||
         item.getAttribute("title") ||
+        item.getAttribute("data-bs-original-title") ||
         (labels as Record<string, string>)[icon];
       if (!label) {
         hide();

@@ -1,20 +1,27 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { featureDialog, sketchHeader, watchDom } from "../adapter/dom";
 import type { OnshapeState } from "../types";
 export function SketchPanel({
   state,
   collapsed,
   toggle,
+  dimensionsHidden,
+  toggleDimensions,
 }: {
   state: OnshapeState;
   collapsed: boolean;
   toggle: () => void;
+  dimensionsHidden: boolean;
+  toggleDimensions: () => void;
 }) {
   const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(
     null,
   );
+  const [controlsHost, setControlsHost] = useState<HTMLElement | null>(null);
   useEffect(() => {
     let patched: HTMLElement | null = null;
+    let controls: HTMLElement | null = null;
     const refresh = () => {
       const dialog = featureDialog(),
         header = sketchHeader();
@@ -23,9 +30,29 @@ export function SketchPanel({
         patched.classList.remove("mitigator-sketch-collapsed");
         patched = null;
       }
+      if (
+        controls &&
+        (!sketch || !dialog || !controls.isConnected || !dialog.contains(controls))
+      ) {
+        controls.remove();
+        controls = null;
+        setControlsHost(null);
+      }
       if (!sketch || !header || !dialog) {
         setAnchor((previous) => (previous === null ? previous : null));
         return;
+      }
+      if (!controls) {
+        const constraints = dialog
+          .querySelector("#show-constraints")
+          ?.closest<HTMLElement>(".os-param-wrapper");
+        if (constraints) {
+          controls = document.createElement("div");
+          controls.id = "mitigator-sketch-dimensions";
+          controls.className = "os-param-wrapper os-param-container";
+          constraints.after(controls);
+          setControlsHost(controls);
+        }
       }
       if (collapsed) {
         dialog.classList.add("mitigator-sketch-collapsed");
@@ -64,18 +91,42 @@ export function SketchPanel({
       clearInterval(timer);
       window.removeEventListener("resize", refresh);
       patched?.classList.remove("mitigator-sketch-collapsed");
+      controls?.remove();
+      setControlsHost(null);
     };
   }, [state.toolbarType, collapsed]);
-  return anchor ? (
-    <button
-      className="sketch-toggle"
-      style={{ top: anchor.top, left: anchor.left }}
-      onClick={toggle}
-      aria-label={collapsed ? "Expand sketch panel" : "Collapse sketch panel"}
-      aria-expanded={!collapsed}
-      title={collapsed ? "Expand sketch panel" : "Collapse sketch panel"}
-    >
-      {collapsed ? "⌄" : "⌃"}
-    </button>
-  ) : null;
+  return (
+    <>
+      {anchor && (
+        <button
+          className="sketch-toggle"
+          style={{ top: anchor.top, left: anchor.left }}
+          onClick={toggle}
+          aria-label={collapsed ? "Expand sketch panel" : "Collapse sketch panel"}
+          aria-expanded={!collapsed}
+          title={collapsed ? "Expand sketch panel" : "Collapse sketch panel"}
+        >
+          {collapsed ? "⌄" : "⌃"}
+        </button>
+      )}
+      {controlsHost &&
+        createPortal(
+          <label
+            className="os-param-checkbox"
+            id="mitigator-hide-dimensions"
+            title="Hide dimensions"
+          >
+            <input
+              className="os-param-checkbox-input"
+              type="checkbox"
+              checked={dimensionsHidden}
+              onChange={toggleDimensions}
+            />
+            <span className="os-checkbox-indicator" />
+            <span className="os-param-checkbox-label">Hide dimensions</span>
+          </label>,
+          controlsHost,
+        )}
+    </>
+  );
 }

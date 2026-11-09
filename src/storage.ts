@@ -5,6 +5,7 @@ export const ACTIONS: Record<ActionId, string> = {
   openExtensionMenu: "Open extension menu",
   openVariablesTable: "Toggle variables table",
   toggleSketchToolbar: "Toggle sketch panel",
+  toggleSketchDimensions: "Toggle sketch dimensions",
   copyAiContext: "Copy context for AI",
   openSettings: "Open settings",
 };
@@ -12,10 +13,12 @@ export const DEFAULTS: Settings = {
   settingsVersion: 3,
   extensionEnabled: true,
   sketchToolbarCollapsed: false,
+  sketchDimensionsHidden: false,
   keyboardShortcuts: {
     openExtensionMenu: "Alt+M",
     openVariablesTable: "Alt+V",
     toggleSketchToolbar: "Alt+Shift+T",
+    toggleSketchDimensions: "Alt+Shift+D",
     copyAiContext: "Alt+Shift+C",
     openSettings: "Alt+S",
   },
@@ -30,6 +33,7 @@ export function migrateSettings(raw: Record<string, unknown>): Settings {
   for (const key of [
     "extensionEnabled",
     "sketchToolbarCollapsed",
+    "sketchDimensionsHidden",
     "aiOpenAfterCopy",
   ] as const)
     if (typeof raw[key] === "boolean") next[key] = raw[key];

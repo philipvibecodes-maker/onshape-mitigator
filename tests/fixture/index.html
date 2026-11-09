@@ -31,6 +31,12 @@
         top: 350px;
         left: 5px;
       }
+      .sketch-dimension {
+        display: inline-block;
+      }
+      .sketch-dimension[hidden] {
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -40,6 +46,13 @@
       <div class="feature-dialog-main">
         <div class="ns-dialog-header">
           <button id="finish">✓</button><button id="cancel">✕</button>
+        </div>
+        <div class="os-param-wrapper os-param-container">
+          <label class="os-param-checkbox" id="show-constraints">
+            <input class="os-param-checkbox-input" type="checkbox" />
+            <span class="os-checkbox-indicator"></span>
+            <span class="os-param-checkbox-label">Show constraints</span>
+          </label>
         </div>
         <div id="panel-content">Sketch panel</div>
       </div>
@@ -59,10 +72,55 @@
       <button class="os-tool-item" icon="extrude-button">icon</button
       ><button class="os-tool-item" icon="unknown">unknown</button>
     </div>
+    <span class="sketch-dimension">10 mm</span>
+    <span class="sketch-dimension">20 mm</span>
     <script>
       const initial = window.fixtureMode || "Sketch";
       const handlers = new Map();
       window.toolbar = { toolbarName: initial, currentTool: "LINESEGMENT" };
+      class FixtureDimension {
+        constructor(element) {
+          this.element = element;
+        }
+        hide() {
+          this.element.hidden = true;
+        }
+        show() {
+          this.element.hidden = false;
+        }
+      }
+      window.fixtureDimensions = Array.from(
+        document.querySelectorAll(".sketch-dimension"),
+        (element) => new FixtureDimension(element),
+      );
+      window.fixtureViewer = {
+        getUiElements: () => ({ ...window.fixtureDimensions }),
+        addUIElement: (dimension) => window.fixtureDimensions.push(dimension),
+        forceRequestDraw: () => {},
+      };
+      window.addDimension = () => {
+        const element = document.createElement("span");
+        element.className = "sketch-dimension";
+        element.textContent = "30 mm";
+        document.body.append(element);
+        const dimension = new FixtureDimension(element);
+        window.fixtureViewer.addUIElement(dimension);
+        return element.hidden;
+      };
+      window.showDimensions = () => {
+        window.fixtureDimensions.forEach((dimension) => dimension.show());
+        return window.fixtureDimensions.some(
+          (dimension) => !dimension.element.hidden,
+        );
+      };
+      window.btTs = {
+        graphics: {
+          dimensions: {
+            Dimension: FixtureDimension,
+            getActiveViewer: () => window.fixtureViewer,
+          },
+        },
+      };
       window.selectionReads = 0;
       window.services = {
         ElementToolbarService: window.toolbar,

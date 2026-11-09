@@ -1,6 +1,7 @@
 import {
   REQUEST,
   RESPONSE,
+  SET_DIMENSIONS_HIDDEN,
   isSelections,
   isModelData,
   isState,
@@ -65,5 +66,11 @@ export function readPage(
     window.addEventListener("message", onMessage);
     window.postMessage({ type: REQUEST, requestId, kind }, location.origin);
   });
+}
+export function setSketchDimensionsHidden(hidden: boolean): void {
+  window.postMessage(
+    { type: SET_DIMENSIONS_HIDDEN, hidden },
+    location.origin,
+  );
 }
 export { toggleVariablesTable } from "./dom";

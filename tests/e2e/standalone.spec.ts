@@ -114,6 +114,21 @@ test("tooltips are immediate, bounded, and removed with replaced menus", async (
   });
   await page.locator('[icon="extrude-button"]').hover();
   await expect(tooltip).toHaveText("Extrude");
+  await page.evaluate(() => {
+    (window as any).emitMode("Part Studio");
+    const panel = document.querySelector(".os-mini-toolbar-panel")!;
+    panel.innerHTML = `
+      <div
+        class="tool"
+        command-id="extrude"
+        data-bs-original-title="Extrude (shift+e)"
+      >
+        <svg><use href="#svg-icon-extrude-button"></use></svg>
+      </div>
+    `;
+  });
+  await page.locator('.tool[command-id="extrude"]').hover();
+  await expect(tooltip).toHaveText("Extrude (shift+e)");
 });
 
 test("menu toggles with shortcut and icon; variables shortcut ignores typing and repeat", async ({
@@ -142,6 +157,42 @@ test("menu toggles with shortcut and icon; variables shortcut ignores typing and
   await expect(page.locator("body")).toHaveAttribute("data-variables", "true");
 });
 
+test("native sketch menu hides dimensions, persists the choice, and handles new dimensions", async ({
+  page,
+}) => {
+  await openFixture(page);
+  const hideDimensions = page.getByRole("checkbox", {
+    name: "Hide dimensions",
+    exact: true,
+  });
+  const hideDimensionsLabel = page.locator("#mitigator-hide-dimensions");
+  await expect(hideDimensionsLabel).toBeVisible();
+  await expect(page.locator("#show-constraints").locator("..").locator(":scope + div")).toHaveAttribute(
+    "id",
+    "mitigator-sketch-dimensions",
+  );
+  await expect(hideDimensions).not.toBeChecked();
+  await hideDimensionsLabel.click();
+  await expect(page.locator(".sketch-dimension").first()).toBeHidden();
+  await expect(page.locator(".sketch-dimension").last()).toBeHidden();
+  expect(await page.evaluate(() => (window as any).addDimension())).toBe(true);
+  expect(await page.evaluate(() => (window as any).showDimensions())).toBe(
+    false,
+  );
+  await expect(page.locator(".sketch-dimension").last()).toBeHidden();
+  await page.reload();
+  await expect(page.locator(".sketch-dimension").first()).toBeHidden();
+  await expect(page.locator(".sketch-dimension").last()).toBeHidden();
+  await expect(hideDimensions).toBeChecked();
+  await page.keyboard.press("Alt+Shift+d");
+  await expect(hideDimensions).not.toBeChecked();
+  await expect(page.locator(".sketch-dimension").first()).toBeVisible();
+  await page.keyboard.press("Alt+Shift+d");
+  await expect(hideDimensions).toBeChecked();
+  await page.evaluate(() => (window as any).emitMode("Assembly"));
+  await expect(hideDimensions).toHaveCount(0);
+});
+
 test("fallback menu stays at the upper-right edge and fits a small viewport", async ({ page }) => {
   await openFixture(page);
   await page.keyboard.press("Alt+m");
@@ -164,6 +215,12 @@ test("shortcut recording rejects duplicates, cancels with Escape, and saves imme
 }) => {
   await openFixture(page);
   await settings(page);
+  await expect(
+    page.getByRole("textbox", {
+      name: "Toggle sketch dimensions",
+      exact: true,
+    }),
+  ).toHaveValue("Alt+Shift+D");
   const binding = page.getByRole("textbox", {
     name: "Toggle variables table",
     exact: true,

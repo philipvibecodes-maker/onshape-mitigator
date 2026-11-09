@@ -17,6 +17,7 @@ export type ActionId =
   | "openExtensionMenu"
   | "openVariablesTable"
   | "toggleSketchToolbar"
+  | "toggleSketchDimensions"
   | "copyAiContext"
   | "openSettings";
 export type Bindings = Record<ActionId, string>;
@@ -24,6 +25,7 @@ export type Settings = {
   settingsVersion: 3;
   extensionEnabled: boolean;
   sketchToolbarCollapsed: boolean;
+  sketchDimensionsHidden: boolean;
   keyboardShortcuts: Bindings;
   aiChatbotUrl: string;
   aiOpenAfterCopy: boolean;

@@ -12,17 +12,32 @@ import {
   type AiContextSnapshot,
 } from "../../src/aiContext";
 import { readPage } from "../../src/adapter/client";
-import { isRequest, REQUEST, RESPONSE } from "../../src/adapter/protocol";
-import { handleRead, readState, readSelections } from "../../src/adapter/page";
+import {
+  isRequest,
+  isSetDimensionsHiddenRequest,
+  REQUEST,
+  RESPONSE,
+  SET_DIMENSIONS_HIDDEN,
+} from "../../src/adapter/protocol";
+import {
+  handleRead,
+  readState,
+  readSelections,
+  setSketchDimensionsHidden,
+} from "../../src/adapter/page";
 
 afterEach(() => {
   vi.restoreAllMocks();
   localStorage.clear();
   delete window.angular;
+  delete window.btTs;
 });
 describe("settings compatibility", () => {
   it("uses Alt+S to open settings by default", () => {
     expect(DEFAULTS.keyboardShortcuts.openSettings).toBe("Alt+S");
+    expect(DEFAULTS.keyboardShortcuts.toggleSketchDimensions).toBe(
+      "Alt+Shift+D",
+    );
   });
 
   it("migrates only retained preferences and fills missing bindings", () => {
@@ -42,6 +57,7 @@ describe("settings compatibility", () => {
       settingsVersion: 3,
       extensionEnabled: false,
       sketchToolbarCollapsed: true,
+      sketchDimensionsHidden: false,
       aiChatbotUrl: "https://example.com/",
       aiOpenAfterCopy: false,
     });
@@ -166,14 +182,70 @@ describe("context formatting", () => {
     );
   });
 });
-describe("read-only adapter", () => {
-  it("rejects command endpoints and malformed read requests", () => {
+describe("page adapter", () => {
+  it("rejects arbitrary command endpoints and malformed read requests", () => {
     expect(
       isRequest({ type: "OS_EXECUTE_COMMAND", requestId: "id", kind: "state" }),
     ).toBe(false);
     expect(isRequest({ type: REQUEST, requestId: 4, kind: "state" })).toBe(
       false,
     );
+    expect(
+      isSetDimensionsHiddenRequest({
+        type: SET_DIMENSIONS_HIDDEN,
+        hidden: "yes",
+      }),
+    ).toBe(false);
+    expect(
+      isSetDimensionsHiddenRequest({
+        type: SET_DIMENSIONS_HIDDEN,
+        hidden: true,
+      }),
+    ).toBe(true);
+  });
+  it("hides and shows only native dimension elements", () => {
+    class Dimension {
+      hide = vi.fn();
+      show = vi.fn();
+    }
+    const first = new Dimension();
+    const second = new Dimension();
+    const firstShow = first.show;
+    const draw = vi.fn();
+    const elements: Record<string, unknown> = { first, ignored: {}, second };
+    const addUIElement = vi.fn((element: unknown) => {
+      elements.added = element;
+    });
+    const viewer = {
+      getUiElements: () => elements,
+      addUIElement,
+      forceRequestDraw: draw,
+    };
+    window.btTs = {
+      graphics: {
+        dimensions: {
+          Dimension,
+          getActiveViewer: () => viewer,
+        },
+      },
+    };
+    expect(setSketchDimensionsHidden(true)).toBe(2);
+    expect(first.hide).toHaveBeenCalledOnce();
+    expect(second.hide).toHaveBeenCalledOnce();
+    expect(draw).toHaveBeenCalledOnce();
+    first.show();
+    expect(firstShow).not.toHaveBeenCalled();
+    const added = new Dimension();
+    viewer.addUIElement(added);
+    expect(addUIElement).toHaveBeenCalledWith(added);
+    expect(added.hide).toHaveBeenCalledOnce();
+    expect(setSketchDimensionsHidden(false)).toBe(3);
+    expect(first.show).toHaveBeenCalledOnce();
+    expect(second.show).toHaveBeenCalledOnce();
+    expect(added.show).toHaveBeenCalledOnce();
+    const restored = new Dimension();
+    viewer.addUIElement(restored);
+    expect(restored.hide).not.toHaveBeenCalled();
   });
   it("reads initial state without toolbar events and never replaces broadcasts", () => {
     const broadcast = vi.fn();
