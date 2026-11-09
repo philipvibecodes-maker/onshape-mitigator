@@ -4,7 +4,7 @@ A small standalone Chrome and Edge extension that makes Onshape easier to learn 
 
 - **Instant tooltips:** hovering an icon in Onshape's `s` shortcut menu immediately shows its command name.
 - **Collapsible sketch panel:** collapse sketch options while leaving native finish/cancel controls available. The preference persists.
-- **Configurable shortcuts:** includes toggling the variables table, which Onshape cannot normally bind.
+- **Configurable shortcuts:** includes toggling the variables table and spatial Alt+numpad view mappings.
 - **AI-ready document context:** copy a Markdown snapshot of the document URL/IDs, names, toolbar/tool state, selections, visible labels, and native Part Studio feature/variable definitions suitable for reconstructing the model. Optionally open a configured chatbot.
 
 ## Install in Chrome or Edge
@@ -34,6 +34,8 @@ The extension runs on `https://*.onshape.com/*`; modeling helpers activate on do
 
 In Settings, click a binding and press a new combination. Backspace clears; Escape cancels recording. Duplicate assignments are rejected. **Save settings** commits changes; Cancel discards them. Shortcuts do not fire while typing in Onshape fields or editing extension settings. Some browser/OS-reserved combinations cannot be overridden.
 
+Alt+numpad view mappings are configured separately by physical key, so they work with Num Lock on or off. Defaults use a spatial layout: `1` front, `2` bottom, `3` back, `4` left, `5` isometric, `6` right, and `8` top. Keys `0`, `7`, and `9` start unbound. Native `Shift+1` through `Shift+7` views are unchanged.
+
 ## Context sharing
 
 Collection happens only after a copy action. The clipboard receives the full Markdown snapshot. ChatGPT is the default destination (`https://chatgpt.com/?q={context}`), with automatic opening enabled. You can change the HTTP/HTTPS URL or turn opening off. A URL containing `{context}` shares a URL-encoded snapshot with that website; URLs are capped at 6,000 characters by shortening context. Without the placeholder, paste the clipboard into the chatbot yourself.
@@ -59,7 +61,7 @@ npm run build
 
 Browser tests require Chromium: `npx playwright install chromium`, or set `CHROME_PATH` to a system Chromium/Chrome executable. See [tests](tests/README.md) and [build and verification](docs/build-and-verify.md).
 
-The architecture separates isolated content UI, a small local settings store, DOM helpers, and a read-only page-context adapter. Bridge requests are restricted to state and selection reads; no general command or broadcast endpoint is exposed. Initial state is read explicitly, then refreshed and updated by scoped Angular event listeners. DOM helpers work without bridge readiness.
+The architecture separates isolated content UI, a small local settings store, DOM helpers, and a narrow page-context adapter. Bridge requests are restricted to validated state/model reads, sketch-dimension visibility, and standard-view commands; no general command or broadcast endpoint is exposed. Initial state is read explicitly, then refreshed and updated by scoped Angular event listeners. DOM helpers work without bridge readiness.
 
 ## Attribution and independence
 

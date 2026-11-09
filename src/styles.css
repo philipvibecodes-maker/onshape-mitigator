@@ -10,7 +10,8 @@
   box-sizing: border-box;
 }
 button,
-input {
+input,
+select {
   font: inherit;
 }
 button {
@@ -25,7 +26,8 @@ button:hover {
   background: #e8eef5;
 }
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible {
   outline: 2px solid #2268bd;
   outline-offset: 2px;
 }
@@ -142,6 +144,14 @@ input[type="url"] {
   border-color: #5f6368;
   color: #f1f3f4;
 }
+.settings select {
+  background: #303134;
+  border: 1px solid #5f6368;
+  border-radius: 4px;
+  color: #f1f3f4;
+  padding: 6px;
+  width: 100%;
+}
 .settings button {
   background: #303134;
   border-color: #5f6368;
@@ -164,6 +174,23 @@ input[type="url"] {
 }
 .binding input:focus-visible {
   outline: none;
+}
+.numpad-mappings {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.numpad-mapping {
+  margin: 0;
+  font-size: 12px;
+}
+.numpad-mapping select {
+  display: block;
+  margin-top: 3px;
+}
+.numpad-0 {
+  grid-column: 1 / span 2;
 }
 small {
   display: block;

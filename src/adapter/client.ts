@@ -2,12 +2,18 @@ import {
   REQUEST,
   RESPONSE,
   SET_DIMENSIONS_HIDDEN,
+  EXECUTE_STANDARD_VIEW,
   isSelections,
   isModelData,
   isState,
   type ReadKind,
 } from "./protocol";
-import type { ModelData, OnshapeState, Selection } from "../types";
+import type {
+  ModelData,
+  OnshapeState,
+  Selection,
+  StandardView,
+} from "../types";
 export const EMPTY_STATE: OnshapeState = {
   ready: false,
   toolbarType: null,
@@ -70,6 +76,12 @@ export function readPage(
 export function setSketchDimensionsHidden(hidden: boolean): void {
   window.postMessage(
     { type: SET_DIMENSIONS_HIDDEN, hidden },
+    location.origin,
+  );
+}
+export function executeStandardView(view: StandardView): void {
+  window.postMessage(
+    { type: EXECUTE_STANDARD_VIEW, view },
     location.origin,
   );
 }

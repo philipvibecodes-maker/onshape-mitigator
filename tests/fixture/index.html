@@ -124,6 +124,11 @@
       window.selectionReads = 0;
       window.services = {
         ElementToolbarService: window.toolbar,
+        OnshapeShortcutHandlerService: {
+          getShortcutHandler: (command) => () => {
+            document.body.dataset.viewCommand = command;
+          },
+        },
         $rootScope: {
           $on(name, fn) {
             const list = handlers.get(name) || [];

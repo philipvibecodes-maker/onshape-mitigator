@@ -1,5 +1,11 @@
 import browser from "webextension-polyfill";
-import type { ActionId, Settings } from "./types";
+import {
+  NUMPAD_CODES,
+  STANDARD_VIEWS,
+  type ActionId,
+  type NumpadViewMappings,
+  type Settings,
+} from "./types";
 import { parseBinding } from "./shortcuts";
 export const ACTIONS: Record<ActionId, string> = {
   openExtensionMenu: "Open extension menu",
@@ -9,8 +15,20 @@ export const ACTIONS: Record<ActionId, string> = {
   copyAiContext: "Copy context for AI",
   openSettings: "Open settings",
 };
+export const DEFAULT_NUMPAD_VIEW_MAPPINGS: NumpadViewMappings = {
+  Numpad0: null,
+  Numpad1: "front",
+  Numpad2: "bottom",
+  Numpad3: "back",
+  Numpad4: "left",
+  Numpad5: "isometric",
+  Numpad6: "right",
+  Numpad7: null,
+  Numpad8: "top",
+  Numpad9: null,
+};
 export const DEFAULTS: Settings = {
-  settingsVersion: 3,
+  settingsVersion: 4,
   extensionEnabled: true,
   sketchToolbarCollapsed: false,
   sketchDimensionsHidden: false,
@@ -22,6 +40,7 @@ export const DEFAULTS: Settings = {
     copyAiContext: "Alt+Shift+C",
     openSettings: "Alt+S",
   },
+  numpadViewMappings: { ...DEFAULT_NUMPAD_VIEW_MAPPINGS },
   aiChatbotUrl: "https://chatgpt.com/?q={context}",
   aiOpenAfterCopy: true,
 };
@@ -29,6 +48,7 @@ export function migrateSettings(raw: Record<string, unknown>): Settings {
   const next: Settings = {
     ...DEFAULTS,
     keyboardShortcuts: { ...DEFAULTS.keyboardShortcuts },
+    numpadViewMappings: { ...DEFAULTS.numpadViewMappings },
   };
   for (const key of [
     "extensionEnabled",
@@ -47,6 +67,14 @@ export function migrateSettings(raw: Record<string, unknown>): Settings {
         next.keyboardShortcuts[id] = binding;
     }
   }
+  const numpadMappings = raw.numpadViewMappings;
+  if (numpadMappings && typeof numpadMappings === "object") {
+    for (const code of NUMPAD_CODES) {
+      const view = (numpadMappings as Record<string, unknown>)[code];
+      if (view === null || STANDARD_VIEWS.includes(view as never))
+        next.numpadViewMappings[code] = view as NumpadViewMappings[typeof code];
+    }
+  }
   // Existing duplicate bindings must not execute two actions; keep the first.
   const seen = new Set<string>();
   for (const id of Object.keys(ACTIONS) as ActionId[]) {
@@ -60,7 +88,7 @@ export function migrateSettings(raw: Record<string, unknown>): Settings {
 export async function loadSettings(): Promise<Settings> {
   const raw = await browser.storage.local.get(Object.keys(DEFAULTS));
   const settings = migrateSettings(raw);
-  if (raw.settingsVersion !== 3) await browser.storage.local.set(settings);
+  if (raw.settingsVersion !== 4) await browser.storage.local.set(settings);
   return settings;
 }
 export async function saveSetting<K extends keyof Settings>(

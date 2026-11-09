@@ -173,7 +173,7 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
         "theme",
       ]),
     );
-    expect(migrated.settingsVersion).toBe(3);
+    expect(migrated.settingsVersion).toBe(4);
     expect(migrated.keyboardShortcuts).not.toHaveProperty("togglePenSidebar");
     expect(migrated.theme).toBe("dark");
     popup = await icon(first);

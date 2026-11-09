@@ -1,5 +1,6 @@
-// Narrow page-context adapter. It exposes reads and one validated graphics action.
+// Narrow page-context adapter. It exposes reads and validated graphics actions.
 import {
+  isExecuteStandardViewRequest,
   isRequest,
   isSetDimensionsHiddenRequest,
   RESPONSE,
@@ -9,6 +10,7 @@ import type {
   OnshapeState,
   OnshapeToolbarMode,
   Selection,
+  StandardView,
 } from "../types";
 type Service = Record<string, any>;
 type Injector = { get(name: string): Service };
@@ -17,6 +19,15 @@ type DimensionViewer = {
   getUiElements?: () => Record<string, unknown>;
   addUIElement?: (element: unknown) => void;
   forceRequestDraw?: () => void;
+};
+const VIEW_COMMANDS: Record<StandardView, string> = {
+  front: "frontView",
+  back: "backView",
+  left: "leftView",
+  right: "rightView",
+  top: "topView",
+  bottom: "bottomView",
+  isometric: "isometricView",
 };
 declare global {
   interface Window {
@@ -285,8 +296,26 @@ export function handleSetDimensionsHidden(event: MessageEvent): void {
     return;
   setSketchDimensionsHidden(event.data.hidden);
 }
+export function executeStandardView(view: StandardView): boolean {
+  const shortcuts = service(getInjector(), "OnshapeShortcutHandlerService");
+  const command = VIEW_COMMANDS[view];
+  const handler = shortcuts?.getShortcutHandler?.(command);
+  if (typeof handler !== "function") return false;
+  handler(command);
+  return true;
+}
+export function handleExecuteStandardView(event: MessageEvent): void {
+  if (
+    event.source !== window ||
+    event.origin !== location.origin ||
+    !isExecuteStandardViewRequest(event.data)
+  )
+    return;
+  executeStandardView(event.data.view);
+}
 if (!window.__mitigatorAdapter) {
   window.__mitigatorAdapter = true;
   window.addEventListener("message", handleRead);
   window.addEventListener("message", handleSetDimensionsHidden);
+  window.addEventListener("message", handleExecuteStandardView);
 }
