@@ -38,7 +38,7 @@ History uses imperative, descriptive subjects, such as “Keep sketch collapse t
 
 When `.codegraph/` exists, use `codegraph explore "<symbol or question>"` before locating or reading code. Do not initialize an index when absent.
 
-Before declaring any implementation or bug-fix task complete, use `$onshape-browser-verify` at `/home/claude/.codex/skills/onshape-browser-verify/SKILL.md`. The skill describes Brave by default, but this environment's user preference is **Chromium**, using the user's Flatpak profile below. Honor that preference; do not substitute Brave, Chrome, or Chrome for Testing. Build and load the final extension, exercise the change in a live Onshape document, and report the observed result. Unit tests, fixtures, and a running debug endpoint do not satisfy this requirement. If live verification is blocked, report the specific blocker; documentation-only changes are exempt.
+Before declaring any implementation or bug-fix task complete, use the repository Chromium login and live-test helper described below. Build and load the final extension, exercise the change in a live Onshape document, and report the observed result. Unit tests, fixtures, and a running debug endpoint do not satisfy this requirement. If live verification is blocked, report the specific blocker; documentation-only changes are exempt.
 
 ## Live Onshape verification with Chromium
 

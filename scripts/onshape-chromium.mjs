@@ -371,7 +371,7 @@ export async function launchOnshapeChromium({ headed = false } = {}) {
   }
 }
 
-async function closeLiveBrowser(live) {
+export async function closeLiveBrowser(live) {
   await live.context.close().catch(() => {});
   await live.flatpakBrowser?.close().catch(() => {});
   if (live.flatpakProcess && live.flatpakProcess.exitCode === null) {
