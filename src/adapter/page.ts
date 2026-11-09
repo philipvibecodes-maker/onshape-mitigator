@@ -1,5 +1,9 @@
-// Read-only page-context adapter. No arbitrary command or broadcast endpoint.
-import { isRequest, RESPONSE } from "./protocol";
+// Narrow page-context adapter. It exposes reads and one validated graphics action.
+import {
+  isRequest,
+  isSetDimensionsHiddenRequest,
+  RESPONSE,
+} from "./protocol";
 import type {
   ModelData,
   OnshapeState,
@@ -8,10 +12,24 @@ import type {
 } from "../types";
 type Service = Record<string, any>;
 type Injector = { get(name: string): Service };
+type DimensionElement = { hide?: () => void; show?: () => void };
+type DimensionViewer = {
+  getUiElements?: () => Record<string, unknown>;
+  addUIElement?: (element: unknown) => void;
+  forceRequestDraw?: () => void;
+};
 declare global {
   interface Window {
     angular?: { element(node: Document): { injector(): Injector | undefined } };
     __mitigatorAdapter?: boolean;
+    btTs?: {
+      graphics?: {
+        dimensions?: {
+          Dimension?: new (...args: never[]) => unknown;
+          getActiveViewer?: () => DimensionViewer | null;
+        };
+      };
+    };
   }
 }
 export function getInjector(): Injector | undefined {
@@ -165,6 +183,65 @@ async function readModel(): Promise<ModelData> {
   ]);
   return { features, variables };
 }
+let hookedViewer: DimensionViewer | null = null;
+let originalAddUIElement: DimensionViewer["addUIElement"];
+const originalDimensionShows = new Map<DimensionElement, () => void>();
+function preventDimensionShowing(dimension: DimensionElement): void {
+  if (originalDimensionShows.has(dimension)) return;
+  const show = dimension.show;
+  if (typeof show !== "function") return;
+  originalDimensionShows.set(dimension, show);
+  dimension.show = () => {};
+}
+function restoreDimensionShows(): void {
+  for (const [dimension, show] of originalDimensionShows)
+    dimension.show = show;
+  originalDimensionShows.clear();
+}
+function removeDimensionCreationHook(): void {
+  if (hookedViewer && originalAddUIElement)
+    hookedViewer.addUIElement = originalAddUIElement;
+  hookedViewer = null;
+  originalAddUIElement = undefined;
+}
+export function setSketchDimensionsHidden(hidden: boolean): number {
+  const graphics = window.btTs?.graphics?.dimensions;
+  const Dimension = graphics?.Dimension;
+  const viewer = graphics?.getActiveViewer?.();
+  if (!Dimension || !viewer) return 0;
+  if (!hidden) {
+    removeDimensionCreationHook();
+    restoreDimensionShows();
+  }
+  else if (hookedViewer !== viewer) {
+    removeDimensionCreationHook();
+    const addUIElement = viewer.addUIElement;
+    if (typeof addUIElement === "function") {
+      hookedViewer = viewer;
+      originalAddUIElement = addUIElement;
+      viewer.addUIElement = (element) => {
+        addUIElement.call(viewer, element);
+        if (element instanceof Dimension) {
+          const dimension = element as DimensionElement;
+          preventDimensionShowing(dimension);
+          dimension.hide?.call(dimension);
+        }
+      };
+    }
+  }
+  let changed = 0;
+  for (const element of Object.values(viewer.getUiElements?.() ?? {})) {
+    if (!(element instanceof Dimension)) continue;
+    const dimension = element as DimensionElement;
+    if (hidden) preventDimensionShowing(dimension);
+    const update = hidden ? dimension.hide : dimension.show;
+    if (typeof update !== "function") continue;
+    update.call(dimension);
+    changed++;
+  }
+  if (changed) viewer.forceRequestDraw?.();
+  return changed;
+}
 export function handleRead(event: MessageEvent): void {
   if (
     event.source !== window ||
@@ -199,7 +276,17 @@ export function handleRead(event: MessageEvent): void {
     location.origin,
   );
 }
+export function handleSetDimensionsHidden(event: MessageEvent): void {
+  if (
+    event.source !== window ||
+    event.origin !== location.origin ||
+    !isSetDimensionsHiddenRequest(event.data)
+  )
+    return;
+  setSketchDimensionsHidden(event.data.hidden);
+}
 if (!window.__mitigatorAdapter) {
   window.__mitigatorAdapter = true;
   window.addEventListener("message", handleRead);
+  window.addEventListener("message", handleSetDimensionsHidden);
 }

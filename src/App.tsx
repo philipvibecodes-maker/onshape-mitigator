@@ -6,7 +6,12 @@ import type {
   Settings as SettingsValue,
 } from "./types";
 import { loadSettings, saveSetting } from "./storage";
-import { EMPTY_STATE, readPage, toggleVariablesTable } from "./adapter/client";
+import {
+  EMPTY_STATE,
+  readPage,
+  setSketchDimensionsHidden,
+  toggleVariablesTable,
+} from "./adapter/client";
 import { isDocumentPage } from "./adapter/dom";
 import { matchesBinding } from "./shortcuts";
 import {
@@ -78,6 +83,8 @@ export function App({ initial }: { initial: SettingsValue }) {
       setDocumentPage(documentPage);
       const next = documentPage ? await readPage("state") : EMPTY_STATE;
       if (cancelled) return;
+      if (next.toolbarType === "Sketch")
+        setSketchDimensionsHidden(settings.sketchDimensionsHidden);
       setState((previous) =>
         JSON.stringify(previous) === JSON.stringify(next) ? previous : next,
       );
@@ -88,7 +95,7 @@ export function App({ initial }: { initial: SettingsValue }) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [enabled]);
+  }, [enabled, settings.sketchDimensionsHidden]);
   const toggleSketch = useCallback(() => {
     if (state.toolbarType !== "Sketch") return;
     void saveSetting(
@@ -96,6 +103,19 @@ export function App({ initial }: { initial: SettingsValue }) {
       !settings.sketchToolbarCollapsed,
     ).catch(() => showToast("Could not save sketch panel preference"));
   }, [state.toolbarType, settings.sketchToolbarCollapsed]);
+  const toggleDimensions = useCallback(() => {
+    if (state.toolbarType !== "Sketch") return;
+    const hidden = !settings.sketchDimensionsHidden;
+    setSketchDimensionsHidden(hidden);
+    setSettings((previous) => ({
+      ...previous,
+      sketchDimensionsHidden: hidden,
+    }));
+    void saveSetting("sketchDimensionsHidden", hidden).catch(() => {
+      void update();
+      showToast("Could not save dimension visibility preference");
+    });
+  }, [state.toolbarType, settings.sketchDimensionsHidden, update]);
   const copy = useCallback(async () => {
     if (copyInFlight.current || !isDocumentPage()) return;
     copyInFlight.current = true;
@@ -143,6 +163,7 @@ export function App({ initial }: { initial: SettingsValue }) {
           showToast("Variables table is unavailable on this page");
       },
       toggleSketchToolbar: toggleSketch,
+      toggleSketchDimensions: toggleDimensions,
       copyAiContext: () => void copy(),
       openSettings: () => setEditing(true),
     };
@@ -175,7 +196,15 @@ export function App({ initial }: { initial: SettingsValue }) {
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [settings, enabled, editing, toggleSketch, copy, toggleMenu]);
+  }, [
+    settings,
+    enabled,
+    editing,
+    toggleSketch,
+    toggleDimensions,
+    copy,
+    toggleMenu,
+  ]);
   async function save(next: SettingsValue) {
     await browser.storage.local.set(next);
     setSettings(next);
@@ -213,6 +242,8 @@ export function App({ initial }: { initial: SettingsValue }) {
             state={state}
             collapsed={settings.sketchToolbarCollapsed}
             toggle={toggleSketch}
+            dimensionsHidden={settings.sketchDimensionsHidden}
+            toggleDimensions={toggleDimensions}
           />
         </>
       )}
