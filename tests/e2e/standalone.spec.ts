@@ -114,6 +114,21 @@ test("tooltips are immediate, bounded, and removed with replaced menus", async (
   });
   await page.locator('[icon="extrude-button"]').hover();
   await expect(tooltip).toHaveText("Extrude");
+  await page.evaluate(() => {
+    (window as any).emitMode("Part Studio");
+    const panel = document.querySelector(".os-mini-toolbar-panel")!;
+    panel.innerHTML = `
+      <div
+        class="tool"
+        command-id="extrude"
+        data-bs-original-title="Extrude (shift+e)"
+      >
+        <svg><use href="#svg-icon-extrude-button"></use></svg>
+      </div>
+    `;
+  });
+  await page.locator('.tool[command-id="extrude"]').hover();
+  await expect(tooltip).toHaveText("Extrude (shift+e)");
 });
 
 test("menu toggles with shortcut and icon; variables shortcut ignores typing and repeat", async ({
