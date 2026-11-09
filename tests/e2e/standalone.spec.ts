@@ -255,6 +255,75 @@ test("shortcut recording rejects duplicates, cancels with Escape, and saves imme
   await expect(binding).toHaveValue("Unbound");
 });
 
+test("alt+numpad views use spatial defaults and persist custom mappings", async ({
+  page,
+}) => {
+  await openFixture(page, "Part Studio");
+  await page.keyboard.press("Alt+Numpad8");
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-view-command",
+    "topView",
+  );
+  await page.keyboard.press("Alt+Numpad5");
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-view-command",
+    "isometricView",
+  );
+  await page.evaluate(() => delete document.body.dataset.viewCommand);
+  await page.keyboard.press("Alt+Numpad7");
+  await expect(page.locator("body")).not.toHaveAttribute("data-view-command");
+
+  await settings(page);
+  await page
+    .getByRole("combobox", { name: "Alt+Numpad 7 view", exact: true })
+    .selectOption("front");
+  await page
+    .getByRole("combobox", { name: "Alt+Numpad 8 view", exact: true })
+    .selectOption("");
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          JSON.parse(
+            localStorage.getItem("extension:numpadViewMappings") ?? "{}",
+          ).Numpad7,
+      ),
+    )
+    .toBe("front");
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await page.locator("h1").click();
+  await page.keyboard.press("Alt+Numpad7");
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-view-command",
+    "frontView",
+  );
+  await page.evaluate(() => delete document.body.dataset.viewCommand);
+  await page.keyboard.press("Alt+Numpad8");
+  await expect(page.locator("body")).not.toHaveAttribute("data-view-command");
+
+  await page.reload();
+  await page.keyboard.press("Alt+Numpad7");
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-view-command",
+    "frontView",
+  );
+  await page.evaluate(() => {
+    delete document.body.dataset.viewCommand;
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Home",
+        code: "Numpad7",
+        altKey: true,
+        bubbles: true,
+      }),
+    );
+  });
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-view-command",
+    "frontView",
+  );
+});
+
 test("settings text editing stays local and Escape does not cancel native dialogs", async ({
   page,
 }) => {

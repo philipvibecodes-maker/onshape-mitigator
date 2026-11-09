@@ -4,8 +4,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium, expect, test, type Page } from "@playwright/test";
 
-// Chromium exposes headless action popups as "other" targets. Include them in
-// Playwright's page inventory so we test the real popup, not a surrogate tab.
 process.env.PW_CHROMIUM_ATTACH_TO_OTHER = "1";
 
 test("anchored popup, fullscreen fallback, migration and persistent cross-tab disable", async () => {
@@ -64,14 +62,14 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
       });
       const target = targetInfos.find((target) => target.url === page.url());
       expect(target).toBeDefined();
-      const opened = context.waitForEvent("page", {
-        predicate: (page) => page.url() === `chrome-extension://${id}/popup.html`,
-      });
+      const opened = context.waitForEvent("page", { timeout: 5000 });
       await cdp.send("Extensions.triggerAction", {
         id,
         targetId: target!.targetId,
       });
       const popup = await opened;
+      // Chrome emits the page event at about:blank before navigating the popup.
+      await popup.waitForURL(`chrome-extension://${id}/popup.html`);
       await expect(popup.getByRole("region", { name: "Onshape Mitigator menu" })).toBeVisible();
       return popup;
     }
@@ -115,11 +113,10 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
 
     // Alt+M uses the same native popup when the toolbar is available.
     await first.locator("h1").click();
-    const shortcutPopup = context.waitForEvent("page", {
-      predicate: (page) => page.url() === `chrome-extension://${id}/popup.html`,
-    });
+    const shortcutPopup = context.waitForEvent("page", { timeout: 5000 });
     await first.keyboard.press("Alt+m");
     popup = await shortcutPopup;
+    await popup.waitForURL(`chrome-extension://${id}/popup.html`);
     await expect(popup.getByRole("region", { name: "Onshape Mitigator menu" })).toBeVisible();
     await expect(menu).toHaveCount(0);
     await popup.getByRole("button", { name: "Hide menu", exact: true }).click();
@@ -173,7 +170,7 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
         "theme",
       ]),
     );
-    expect(migrated.settingsVersion).toBe(3);
+    expect(migrated.settingsVersion).toBe(4);
     expect(migrated.keyboardShortcuts).not.toHaveProperty("togglePenSidebar");
     expect(migrated.theme).toBe("dark");
     popup = await icon(first);

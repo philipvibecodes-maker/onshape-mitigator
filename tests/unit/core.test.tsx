@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DEFAULTS, loadSettings, migrateSettings } from "../../src/storage";
+import {
+  DEFAULTS,
+  DEFAULT_NUMPAD_VIEW_MAPPINGS,
+  loadSettings,
+  migrateSettings,
+} from "../../src/storage";
 import {
   eventToBinding,
   matchesBinding,
@@ -15,11 +20,14 @@ import { readPage } from "../../src/adapter/client";
 import {
   isRequest,
   isSetDimensionsHiddenRequest,
+  isExecuteStandardViewRequest,
+  EXECUTE_STANDARD_VIEW,
   REQUEST,
   RESPONSE,
   SET_DIMENSIONS_HIDDEN,
 } from "../../src/adapter/protocol";
 import {
+  executeStandardView,
   handleRead,
   readState,
   readSelections,
@@ -54,7 +62,7 @@ describe("settings compatibility", () => {
       },
     });
     expect(settings).toMatchObject({
-      settingsVersion: 3,
+      settingsVersion: 4,
       extensionEnabled: false,
       sketchToolbarCollapsed: true,
       sketchDimensionsHidden: false,
@@ -65,7 +73,25 @@ describe("settings compatibility", () => {
       ...DEFAULTS.keyboardShortcuts,
       openVariablesTable: "Ctrl+V",
     });
+    expect(settings.numpadViewMappings).toEqual(
+      DEFAULT_NUMPAD_VIEW_MAPPINGS,
+    );
     expect(settings).not.toHaveProperty("theme");
+  });
+  it("preserves valid numpad mappings and repairs malformed values", () => {
+    const settings = migrateSettings({
+      settingsVersion: 4,
+      numpadViewMappings: {
+        Numpad0: "right",
+        Numpad1: null,
+        Numpad2: "diagonal",
+      },
+    });
+    expect(settings.numpadViewMappings).toEqual({
+      ...DEFAULT_NUMPAD_VIEW_MAPPINGS,
+      Numpad0: "right",
+      Numpad1: null,
+    });
   });
   it("preserves cleared bindings and handles malformed or duplicate data", () => {
     const settings = migrateSettings({
@@ -86,7 +112,7 @@ describe("settings compatibility", () => {
     localStorage.setItem("extension:theme", JSON.stringify("dark"));
     await loadSettings();
     expect(JSON.parse(localStorage.getItem("extension:settingsVersion")!)).toBe(
-      3,
+      4,
     );
     expect(JSON.parse(localStorage.getItem("extension:theme")!)).toBe("dark");
   });
@@ -202,6 +228,35 @@ describe("page adapter", () => {
         hidden: true,
       }),
     ).toBe(true);
+    expect(
+      isExecuteStandardViewRequest({
+        type: EXECUTE_STANDARD_VIEW,
+        view: "top",
+      }),
+    ).toBe(true);
+    expect(
+      isExecuteStandardViewRequest({
+        type: EXECUTE_STANDARD_VIEW,
+        view: "diagonal",
+      }),
+    ).toBe(false);
+  });
+  it("executes only validated standard views through Onshape's handler", () => {
+    const handler = vi.fn();
+    const getShortcutHandler = vi.fn(() => handler);
+    window.angular = {
+      element: () => ({
+        injector: () => ({
+          get: (name: string) =>
+            name === "OnshapeShortcutHandlerService"
+              ? { getShortcutHandler }
+              : undefined,
+        }),
+      }),
+    };
+    expect(executeStandardView("top")).toBe(true);
+    expect(getShortcutHandler).toHaveBeenCalledWith("topView");
+    expect(handler).toHaveBeenCalledWith("topView");
   });
   it("hides and shows only native dimension elements", () => {
     class Dimension {

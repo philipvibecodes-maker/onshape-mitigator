@@ -1,8 +1,16 @@
-import type { ModelData, OnshapeState, Selection } from "../types";
+import {
+  STANDARD_VIEWS,
+  type ModelData,
+  type OnshapeState,
+  type Selection,
+  type StandardView,
+} from "../types";
 export const REQUEST = "onshape-mitigator:read";
 export const RESPONSE = "onshape-mitigator:result";
 export const SET_DIMENSIONS_HIDDEN =
   "onshape-mitigator:set-sketch-dimensions-hidden";
+export const EXECUTE_STANDARD_VIEW =
+  "onshape-mitigator:execute-standard-view";
 export type ReadKind = "state" | "selections" | "model";
 export type ReadRequest = {
   type: typeof REQUEST;
@@ -26,6 +34,19 @@ export function isSetDimensionsHiddenRequest(
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
   return v.type === SET_DIMENSIONS_HIDDEN && typeof v.hidden === "boolean";
+}
+export function isExecuteStandardViewRequest(
+  value: unknown,
+): value is {
+  type: typeof EXECUTE_STANDARD_VIEW;
+  view: StandardView;
+} {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    v.type === EXECUTE_STANDARD_VIEW &&
+    STANDARD_VIEWS.includes(v.view as never)
+  );
 }
 export function isState(value: unknown): value is OnshapeState {
   if (!value || typeof value !== "object") return false;

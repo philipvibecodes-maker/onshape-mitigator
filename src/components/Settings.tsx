@@ -1,7 +1,29 @@
 import { useEffect, useRef, useState } from "react";
-import type { ActionId, Settings as SettingsValue } from "../types";
+import {
+  STANDARD_VIEWS,
+  type ActionId,
+  type NumpadCode,
+  type Settings as SettingsValue,
+  type StandardView,
+} from "../types";
 import { ACTIONS } from "../storage";
 import { eventToBinding, parseBinding } from "../shortcuts";
+
+const KEYPAD_ROWS: NumpadCode[][] = [
+  ["Numpad7", "Numpad8", "Numpad9"],
+  ["Numpad4", "Numpad5", "Numpad6"],
+  ["Numpad1", "Numpad2", "Numpad3"],
+  ["Numpad0"],
+];
+const VIEW_LABELS: Record<StandardView, string> = {
+  front: "Front",
+  back: "Back",
+  left: "Left",
+  right: "Right",
+  top: "Top",
+  bottom: "Bottom",
+  isometric: "Isometric",
+};
 
 export function Settings({
   settings,
@@ -133,6 +155,43 @@ export function Settings({
             />
           </label>
         ))}
+        <h3>Alt+numpad views</h3>
+        <small>
+          Assign standard views to physical numpad keys. These mappings work
+          with Num Lock on or off.
+        </small>
+        <div className="numpad-mappings">
+          {KEYPAD_ROWS.flat().map((code) => {
+            const digit = code.replace("Numpad", "");
+            return (
+              <label className={`numpad-mapping numpad-${digit}`} key={code}>
+                Alt+{digit}
+                <select
+                  aria-label={`Alt+Numpad ${digit} view`}
+                  value={draft.numpadViewMappings[code] ?? ""}
+                  onChange={(event) =>
+                    persist({
+                      ...draft,
+                      numpadViewMappings: {
+                        ...draft.numpadViewMappings,
+                        [code]: (event.target.value || null) as
+                          | StandardView
+                          | null,
+                      },
+                    })
+                  }
+                >
+                  <option value="">Unbound</option>
+                  {STANDARD_VIEWS.map((view) => (
+                    <option value={view} key={view}>
+                      {VIEW_LABELS[view]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            );
+          })}
+        </div>
         <h3>AI assistant</h3>
         <label>
           Chatbot URL

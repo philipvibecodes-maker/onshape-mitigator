@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import browser from "webextension-polyfill";
 import type {
   ActionId,
+  NumpadCode,
   OnshapeState,
   Settings as SettingsValue,
 } from "./types";
 import { loadSettings, saveSetting } from "./storage";
 import {
   EMPTY_STATE,
+  executeStandardView,
   readPage,
   setSketchDimensionsHidden,
   toggleVariablesTable,
@@ -180,6 +182,22 @@ export function App({ initial }: { initial: SettingsValue }) {
         )
       )
         return;
+      if (
+        enabled &&
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        !event.metaKey
+      ) {
+        const view =
+          settings.numpadViewMappings[event.code as NumpadCode];
+        if (view) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          executeStandardView(view);
+          return;
+        }
+      }
       for (const [id, binding] of Object.entries(settings.keyboardShortcuts)) {
         if (!binding || !matchesBinding(event, binding)) continue;
         if (!enabled && id !== "openExtensionMenu") return;
