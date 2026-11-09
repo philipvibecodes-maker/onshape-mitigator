@@ -25,7 +25,7 @@ export type ViewportContext = {
   visiblePanels: Array<{ label: string; x: number; y: number; width: number; height: number }>;
 };
 
-export type AiContextSnapshot = {
+type ContextSource = {
   capturedAt: string;
   url: string;
   ids: OnshapeDocumentIds;
@@ -35,12 +35,30 @@ export type AiContextSnapshot = {
   toolbarType: OnshapeToolbarMode | null;
   currentTool: string | null;
   featureDialogOpen: boolean;
+};
+
+type DocumentContextSnapshot = ContextSource & {
+  scope: "document";
   selections: ClassifiedOnshapeSelection[];
   features: string[];
   variables: string[];
   model: ModelData;
   viewport: ViewportContext;
 };
+
+type SketchContextSnapshot = ContextSource & {
+  scope: "sketch";
+  selections: ClassifiedOnshapeSelection[];
+  sketch: {
+    featureId: string | null;
+    name: string | null;
+    definition: unknown | null;
+  };
+};
+
+export type AiContextSnapshot =
+  | DocumentContextSnapshot
+  | SketchContextSnapshot;
 
 export function parseOnshapeUrl(href: string): OnshapeDocumentIds {
   const url = new URL(href);
@@ -254,6 +272,119 @@ function compactFeatureParameters(value: Record<string, unknown>): unknown {
   return value;
 }
 
+function omitInactiveSketchConstraintData(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
+  const omitted = new Set<string>();
+  for (const [key, child] of Object.entries(value)) {
+    const offset = key.match(/^hasOffsetData(\d+)$/);
+    if (offset && child === false) {
+      omitted.add(key);
+      omitted.add(`offsetOrientation${offset[1]}`);
+      omitted.add(`offsetDistance${offset[1]}`);
+    }
+  }
+  if (value.hasPierceParameter === false) {
+    omitted.add("hasPierceParameter");
+    omitted.add("pierceParameter");
+  }
+  if (!omitted.size) return value;
+  return Object.fromEntries(
+    Object.entries(value).filter(([key]) => !omitted.has(key)),
+  );
+}
+
+function compactSketchConstraintData(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
+  const constraintType = value.typeName ?? value.btType;
+  if (
+    typeof constraintType !== "string" ||
+    !constraintType.startsWith("BTMSketchConstraint")
+  )
+    return value;
+
+  const message = value.message;
+  if (message && typeof message === "object" && !Array.isArray(message)) {
+    return {
+      ...value,
+      message: omitInactiveSketchConstraintData(
+        message as Record<string, unknown>,
+      ),
+    };
+  }
+  return omitInactiveSketchConstraintData(value);
+}
+
+function omitSketchFeatureParameters(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
+  const sketchType = value.typeName ?? value.btType;
+  if (
+    typeof sketchType !== "string" ||
+    !/^BTMSketch(?:-\d+)?$/.test(sketchType)
+  )
+    return value;
+
+  const message = value.message;
+  if (message && typeof message === "object" && !Array.isArray(message)) {
+    const { parameters: _parameters, ...compactedMessage } = message as Record<
+      string,
+      unknown
+    >;
+    return { ...value, message: compactedMessage };
+  }
+  const { parameters: _parameters, ...compactedFeature } = value;
+  return compactedFeature;
+}
+
+function omitRedundantQuantityMetadata(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
+  const quantityType = value.typeName ?? value.btType;
+  if (
+    typeof quantityType !== "string" ||
+    !quantityType.startsWith("BTMParameterQuantity")
+  )
+    return value;
+
+  const compactQuantity = (
+    quantity: Record<string, unknown>,
+  ): Record<string, unknown> => {
+    if (
+      typeof quantity.expression !== "string" ||
+      !quantity.expression.trim()
+    )
+      return quantity;
+    const {
+      units: _units,
+      value: _value,
+      isInteger: _isInteger,
+      ...compacted
+    } = quantity;
+    return compacted;
+  };
+
+  const message = value.message;
+  if (message && typeof message === "object" && !Array.isArray(message)) {
+    return {
+      ...value,
+      message: compactQuantity(message as Record<string, unknown>),
+    };
+  }
+  return compactQuantity(value);
+}
+
+function isEmptyCompactedValue(value: unknown): boolean {
+  if (typeof value === "string") return value.trim() === "";
+  if (Array.isArray(value)) return value.length === 0;
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    Object.keys(value as Record<string, unknown>).length === 0
+  );
+}
+
 function compactModelDefinition(value: unknown): unknown {
   if (Array.isArray(value))
     return value
@@ -261,7 +392,11 @@ function compactModelDefinition(value: unknown): unknown {
       .filter((child) => child !== undefined);
   if (!value || typeof value !== "object") return value;
 
-  const source = value as Record<string, unknown>;
+  const source = compactSketchConstraintData(
+    omitRedundantQuantityMetadata(
+      omitSketchFeatureParameters(value as Record<string, unknown>),
+    ),
+  );
   if (
     source.typeName === "BTMParameterQuantity" &&
     SKETCH_ANNOTATION_PARAMETER_IDS.has(parameterId(source) ?? "")
@@ -277,14 +412,20 @@ function compactModelDefinition(value: unknown): unknown {
     Object.entries(source)
       .filter(([key, child]) => {
         if (MODEL_METADATA_KEYS.has(key)) return false;
+        if (
+          key === "type" &&
+          typeof child === "number" &&
+          typeof source.typeName === "string"
+        )
+          return false;
         if (child === undefined || child === null) return false;
-        if (key === "parameters" && Array.isArray(child)) {
-          return child.length > 0;
-        }
+        if (isEmptyCompactedValue(child)) return false;
         return true;
       })
       .map(([key, child]) => [key, compactModelDefinition(child)])
-      .filter(([, child]) => child !== undefined),
+      .filter(
+        ([, child]) => child !== undefined && !isEmptyCompactedValue(child),
+      ),
   );
 }
 
@@ -341,16 +482,89 @@ function collectVariables(): string[] {
   return [];
 }
 
+type SketchIdentity = { featureId: string; name: string | null };
+
+function getActiveSketchIdentity(): SketchIdentity | null {
+  const dialog = document.querySelector<HTMLElement>(
+    '#feature-dialog[feature-type="newSketch"]',
+  );
+  if (!dialog) return null;
+
+  const row = document.querySelector<HTMLElement>(
+    '#feature-list .edited[feature-id][feature-type="newSketch"]',
+  );
+  const featureId = row?.getAttribute("feature-id")?.trim();
+  if (!row || !featureId) return null;
+
+  const rowName =
+    row.querySelector<HTMLElement>(
+      '[class*="label"], [class*="name"], [data-testid*="name"]',
+    )?.textContent?.trim() ?? row.textContent?.trim();
+  const dialogName = dialog
+    .querySelector<HTMLElement>(
+      '.feature-dialog-title, .ns-dialog-title, [class*="dialog-title"]',
+    )
+    ?.textContent?.trim();
+
+  return { featureId, name: rowName || dialogName || null };
+}
+
+function unwrapFeature(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const message = record.message;
+  return message && typeof message === "object" && !Array.isArray(message)
+    ? (message as Record<string, unknown>)
+    : record;
+}
+
+function isSketchFeature(
+  original: Record<string, unknown>,
+  feature: Record<string, unknown>,
+): boolean {
+  if (feature.featureType === "newSketch") return true;
+  if (original.typeName === "BTMSketch" || feature.typeName === "BTMSketch")
+    return true;
+  const btType = feature.btType ?? original.btType;
+  return typeof btType === "string" && btType.startsWith("BTMSketch");
+}
+
+export function findSketchDefinition(
+  featuresResponse: unknown,
+  featureId: string,
+): unknown | null {
+  if (
+    !featuresResponse ||
+    typeof featuresResponse !== "object" ||
+    Array.isArray(featuresResponse) ||
+    !Array.isArray((featuresResponse as { features?: unknown }).features)
+  )
+    return null;
+
+  const matches = (featuresResponse as { features: unknown[] }).features.filter(
+    (entry) => unwrapFeature(entry)?.featureId === featureId,
+  );
+  if (matches.length !== 1) return null;
+
+  const original = matches[0];
+  const feature = unwrapFeature(original);
+  if (!feature || !original || typeof original !== "object") return null;
+  return isSketchFeature(original as Record<string, unknown>, feature)
+    ? original
+    : null;
+}
+
 export async function collectAiContext(opts?: {
   toolbarType?: OnshapeToolbarMode | null;
   currentTool?: string | null;
 }): Promise<AiContextSnapshot> {
-  const [selections, model] = await Promise.all([
-    getCurrentSelections().catch(() => []),
-    readPage("model").catch(() => ({ features: null, variables: null })),
-  ]);
-
-  return {
+  const sketchDialogOpen = Boolean(
+    document.querySelector('#feature-dialog[feature-type="newSketch"]'),
+  );
+  const sketchIdentity = getActiveSketchIdentity();
+  const scope =
+    opts?.toolbarType === "Sketch" || sketchDialogOpen ? "sketch" : "document";
+  const source: ContextSource = {
     capturedAt: new Date().toISOString(),
     url: window.location.href,
     ids: parseOnshapeUrl(window.location.href),
@@ -360,6 +574,32 @@ export async function collectAiContext(opts?: {
     toolbarType: opts?.toolbarType ?? null,
     currentTool: opts?.currentTool ?? null,
     featureDialogOpen: Boolean(document.querySelector("#feature-dialog")),
+  };
+  const [selections, model] = await Promise.all([
+    getCurrentSelections().catch(() => []),
+    readPage("model").catch(() => ({ features: null, variables: null })),
+  ]);
+
+  if (scope === "sketch") {
+    return {
+      ...source,
+      scope,
+      selections: selections.filter(
+        ({ kind }) => kind === "sketch" || kind === "sketch-entity",
+      ),
+      sketch: {
+        featureId: sketchIdentity?.featureId ?? null,
+        name: sketchIdentity?.name ?? null,
+        definition: sketchIdentity
+          ? findSketchDefinition(model.features, sketchIdentity.featureId)
+          : null,
+      },
+    };
+  }
+
+  return {
+    ...source,
+    scope,
     selections,
     features: collectFeatureList(),
     variables: collectVariables(),
@@ -368,17 +608,15 @@ export async function collectAiContext(opts?: {
   };
 }
 
-export function formatContextAsMarkdown(snapshot: AiContextSnapshot): string {
-  const lines: string[] = [
-    "# Onshape Context",
-    "",
-    `Captured: ${snapshot.capturedAt}`,
-    "",
-    "## Document",
+function formatSource(
+  snapshot: AiContextSnapshot,
+  heading: "Document" | "Source",
+): string[] {
+  const lines = [
+    `## ${heading}`,
     `- URL: ${snapshot.url}`,
     `- Title: ${snapshot.documentTitle}`,
   ];
-
   if (snapshot.documentName) lines.push(`- Document: ${snapshot.documentName}`);
   if (snapshot.elementName)
     lines.push(`- Active element: ${snapshot.elementName}`);
@@ -390,6 +628,84 @@ export function formatContextAsMarkdown(snapshot: AiContextSnapshot): string {
     );
   if (snapshot.ids.elementId)
     lines.push(`- Element ID: ${snapshot.ids.elementId}`);
+  return lines;
+}
+
+function formatSketchContext(snapshot: SketchContextSnapshot): string {
+  const sketchSelections = snapshot.selections.filter(
+    ({ kind }) => kind === "sketch" || kind === "sketch-entity",
+  );
+  const lines = [
+    "# Onshape Sketch Context",
+    "",
+    `Captured: ${snapshot.capturedAt}`,
+    "",
+    ...formatSource(snapshot, "Source"),
+    "",
+    "## Current sketch",
+    `- Workspace mode: ${snapshot.toolbarType ?? "unknown"}`,
+    `- Active tool: ${snapshot.currentTool ?? "none"}`,
+    `- Feature dialog open: ${snapshot.featureDialogOpen ? "yes" : "no"}`,
+    `- Feature ID: ${snapshot.sketch.featureId ?? "unavailable"}`,
+    `- Sketch name: ${snapshot.sketch.name ?? "unavailable"}`,
+  ];
+
+  lines.push("", "## Current sketch selection");
+  if (sketchSelections.length) {
+    for (const selection of sketchSelections) {
+      const detail = [
+        selection.kind,
+        "name" in selection ? selection.name : null,
+        selection.id,
+      ]
+        .filter(Boolean)
+        .join(" — ");
+      lines.push(`- ${detail}`);
+    }
+  } else {
+    lines.push("- (none reported; selection data may be unavailable)");
+  }
+
+  lines.push(
+    "",
+    "## Native data compaction",
+    "The native sketch definition below is intentionally shortened. The following data is removed:",
+    "- Numeric `type` when the readable `typeName` is present.",
+    "- The sketch feature's root `parameters` field.",
+    "- Metadata fields: `nodeId`, `hasUserCode`, `namespace`, `libraryRelationType`, `parameterName`, `index`, `filter`, and `helpParameters`.",
+    "- Empty or unavailable values: `null`, `undefined`, empty strings, empty arrays, empty objects, and query-list parameters with no queries.",
+    "- Quantity metadata `units`, normalized `value`, and `isInteger` when a nonempty `expression` is present.",
+    "- Annotation-only sketch parameters: `labelRatio`, `labelAngle`, and `labelDistance`.",
+    "- Inactive constraint offset groups: `hasOffsetDataN`, `offsetOrientationN`, and `offsetDistanceN` when `hasOffsetDataN` is false.",
+    "- Inactive pierce data: `hasPierceParameter` and `pierceParameter` when `hasPierceParameter` is false.",
+  );
+
+  lines.push("", "## Native sketch definition");
+  if (snapshot.sketch.definition !== null) {
+    lines.push("```json");
+    lines.push(
+      JSON.stringify(compactModelDefinition(snapshot.sketch.definition), null, 2),
+    );
+    lines.push("```");
+  } else {
+    lines.push("- Active sketch definition unavailable.");
+  }
+  lines.push(
+    "",
+    "---",
+    "The above is context about my current Onshape sketch. I will follow up with my specific question — please wait for it.",
+  );
+  return lines.join("\n");
+}
+
+function formatDocumentContext(snapshot: DocumentContextSnapshot): string {
+  const lines: string[] = [
+    "# Onshape Context",
+    "",
+    `Captured: ${snapshot.capturedAt}`,
+    "",
+    ...formatSource(snapshot, "Document"),
+  ];
 
   lines.push("", "## State");
   lines.push(`- Workspace mode: ${snapshot.toolbarType ?? "unknown"}`);
@@ -473,6 +789,12 @@ export function formatContextAsMarkdown(snapshot: AiContextSnapshot): string {
   );
 
   return lines.join("\n");
+}
+
+export function formatContextAsMarkdown(snapshot: AiContextSnapshot): string {
+  return snapshot.scope === "sketch"
+    ? formatSketchContext(snapshot)
+    : formatDocumentContext(snapshot);
 }
 
 export function showToast(message: string): void {

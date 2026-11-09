@@ -45,6 +45,7 @@
     <div id="feature-dialog">
       <div class="feature-dialog-main">
         <div class="ns-dialog-header">
+          <span class="ns-dialog-title">Sketch 1</span>
           <button id="finish">✓</button><button id="cancel">✕</button>
         </div>
         <div class="os-param-wrapper os-param-container">
@@ -58,7 +59,10 @@
       </div>
     </div>
     <input id="native-input" aria-label="Native filter" />
-    <div id="feature-list"><div class="feature-list-item">Sketch 1</div></div>
+    <div id="feature-list">
+      <div class="feature-list-item">Sketch 1</div>
+      <div class="feature-list-item">DO NOT COPY Extrude</div>
+    </div>
     <table class="variable-table">
       <tr>
         <td>width</td>
@@ -78,6 +82,14 @@
       const initial = window.fixtureMode || "Sketch";
       const handlers = new Map();
       window.toolbar = { toolbarName: initial, currentTool: "LINESEGMENT" };
+      const featureDialog = document.querySelector("#feature-dialog");
+      const sketchRow = document.querySelector("#feature-list .feature-list-item");
+      if (initial === "Sketch") {
+        featureDialog.setAttribute("feature-type", "newSketch");
+        sketchRow.classList.add("edited");
+        sketchRow.setAttribute("feature-id", "sketch-1");
+        sketchRow.setAttribute("feature-type", "newSketch");
+      }
       class FixtureDimension {
         constructor(element) {
           this.element = element;
@@ -151,15 +163,90 @@
                   getIdString: () => "face-1",
                   getName: () => "Top face",
                 },
+                {
+                  isUserSketchEntity: () => true,
+                  getIdString: () => "entity-1",
+                  getName: () => "Sketch entity sentinel",
+                },
               ];
             },
           },
         },
       };
-      window.fetch = async (url) => ({
-        ok: true,
-        text: async () => JSON.stringify({ endpoint: String(url), features: ["Sketch 1"] }),
-      });
+      window.fetch = async (url) => {
+        const value = String(url);
+        const data = value.endsWith("/features")
+          ? {
+              features: [
+                {
+                  type: 151,
+                  typeName: "BTMSketch",
+                  message: {
+                    featureId: "sketch-1",
+                    name: "Sketch 1",
+                    featureType: "newSketch",
+                    suppressed: false,
+                    parameters: [
+                      {
+                        typeName: "BTMParameterQueryList",
+                        message: {
+                          parameterId: "sketchPlane",
+                          queries: [{ geometryIds: ["Top"] }],
+                        },
+                      },
+                    ],
+                    entities: [
+                      { typeName: "BTMSketchCurve", message: { entityId: "entity-1" } },
+                    ],
+                    constraints: [
+                      {
+                        typeName: "BTMSketchConstraint",
+                        message: {
+                          constraintType: "COINCIDENT",
+                          parameters: [
+                            {
+                              typeName: "BTMParameterString",
+                              message: {
+                                value: "entity-1",
+                                parameterId: "localFirst",
+                              },
+                            },
+                          ],
+                          hasOffsetData1: false,
+                          offsetOrientation1: false,
+                          offsetDistance1: 0,
+                          hasOffsetData2: false,
+                          offsetOrientation2: false,
+                          offsetDistance2: 0,
+                          hasPierceParameter: false,
+                          pierceParameter: 0,
+                        },
+                      },
+                    ],
+                  },
+                },
+                {
+                  type: 134,
+                  typeName: "BTMFeature",
+                  message: {
+                    featureId: "extrude-1",
+                    name: "DO NOT COPY Extrude",
+                    featureType: "extrude",
+                    parameters: [{ sentinel: "DO_NOT_COPY_EXTRUDE_VALUE" }],
+                  },
+                },
+              ],
+            }
+          : {
+              variables: [
+                { name: "DO_NOT_COPY_VARIABLE", value: "DO_NOT_COPY_VARIABLE_VALUE" },
+              ],
+            };
+        return {
+          ok: true,
+          text: async () => JSON.stringify(data),
+        };
+      };
       window.angular = {
         element: () => ({
           injector: () =>

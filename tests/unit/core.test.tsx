@@ -12,6 +12,7 @@ import {
 } from "../../src/shortcuts";
 import {
   buildChatbotUrl,
+  findSketchDefinition,
   formatContextAsMarkdown,
   parseOnshapeUrl,
   type AiContextSnapshot,
@@ -157,6 +158,7 @@ describe("context formatting", () => {
   );
   it("formats partial snapshots without claiming selections are known empty", () => {
     const snapshot: AiContextSnapshot = {
+      scope: "document",
       capturedAt: "now",
       url: "https://cad.onshape.com/",
       ids: {
@@ -195,6 +197,209 @@ describe("context formatting", () => {
     expect(markdown).toContain("View orientation/preset: Trimetric");
     expect(markdown).toContain("800 × 600 CSS px");
     expect(markdown).toContain("Camera coordinates and projection: unavailable");
+  });
+  it("finds exact sketches in wrapped and flat feature responses", () => {
+    const wrapped = {
+      features: [
+        {
+          typeName: "BTMSketch",
+          message: {
+            featureId: "sketch-1",
+            featureType: "newSketch",
+            name: "Wrapped sketch",
+          },
+        },
+      ],
+    };
+    const flat = {
+      features: [
+        {
+          btType: "BTMSketch-151",
+          featureId: "sketch-2",
+          name: "Flat sketch",
+        },
+      ],
+    };
+    expect(findSketchDefinition(wrapped, "sketch-1")).toBe(
+      wrapped.features[0],
+    );
+    expect(findSketchDefinition(flat, "sketch-2")).toBe(flat.features[0]);
+  });
+  it("rejects missing, non-sketch, malformed, and duplicate feature matches", () => {
+    const extrude = {
+      features: [
+        { message: { featureId: "feature-1", featureType: "extrude" } },
+      ],
+    };
+    const duplicate = {
+      features: [
+        { message: { featureId: "sketch-1", featureType: "newSketch" } },
+        { message: { featureId: "sketch-1", featureType: "newSketch" } },
+      ],
+    };
+    expect(findSketchDefinition(extrude, "missing")).toBeNull();
+    expect(findSketchDefinition(extrude, "feature-1")).toBeNull();
+    expect(findSketchDefinition(null, "sketch-1")).toBeNull();
+    expect(findSketchDefinition({ features: {} }, "sketch-1")).toBeNull();
+    expect(findSketchDefinition(duplicate, "sketch-1")).toBeNull();
+  });
+  it("formats only the isolated active sketch definition", () => {
+    const snapshot: AiContextSnapshot = {
+      scope: "sketch",
+      capturedAt: "now",
+      url: "https://cad.onshape.com/documents/doc/w/work/e/element",
+      ids: {
+        documentId: "doc",
+        referenceType: "w",
+        referenceId: "work",
+        elementId: "element",
+      },
+      documentTitle: "Test",
+      documentName: "Document sentinel",
+      elementName: "Part Studio 1",
+      toolbarType: "Sketch",
+      currentTool: "LINESEGMENT",
+      featureDialogOpen: true,
+      selections: [
+        { kind: "sketch-entity", id: "entity-1", name: "Sketch selection" },
+        { kind: "face", id: "face-1", name: "DO NOT COPY Face" },
+      ],
+      sketch: {
+        featureId: "sketch-1",
+        name: "Sketch 1",
+        definition: {
+          type: 151,
+          typeName: "BTMSketch",
+          message: {
+            featureId: "sketch-1",
+            featureType: "newSketch",
+            emptyName: "",
+            subFeatures: [],
+            emptyMetadata: {},
+            parameters: [
+              {
+                typeName: "BTMParameterQueryList",
+                message: { parameterId: "sketchPlane" },
+              },
+            ],
+            entities: [{ entityId: "entity-1" }],
+            constraints: [
+              {
+                typeName: "BTMSketchConstraint",
+                message: {
+                  constraintType: "COINCIDENT",
+                  parameters: [
+                    {
+                      type: 149,
+                      typeName: "BTMParameterString",
+                      message: {
+                        value: "entity-1",
+                        parameterId: "localFirst",
+                      },
+                    },
+                    {
+                      type: 147,
+                      typeName: "BTMParameterQuantity",
+                      message: {
+                        units: "",
+                        value: 0,
+                        expression: "20 mm",
+                        isInteger: false,
+                        parameterId: "length",
+                      },
+                    },
+                  ],
+                  hasOffsetData1: false,
+                  offsetOrientation1: false,
+                  offsetDistance1: 0,
+                  hasOffsetData2: true,
+                  offsetOrientation2: true,
+                  offsetDistance2: 0.02,
+                  hasPierceParameter: false,
+                  pierceParameter: 0,
+                },
+              },
+            ],
+          },
+        },
+      },
+    };
+    const markdown = formatContextAsMarkdown(snapshot);
+    const nativeJson =
+      markdown.match(/```json\n([\s\S]*?)\n```/)?.[1] ?? "null";
+    expect(markdown).toMatch(/^# Onshape Sketch Context/);
+    expect(markdown).toContain("sketch-1");
+    expect(markdown).toContain("Sketch 1");
+    expect(markdown).toContain("entity-1");
+    expect(markdown).toContain("COINCIDENT");
+    expect(nativeJson).not.toContain("hasOffsetData1");
+    expect(nativeJson).not.toContain("offsetOrientation1");
+    expect(nativeJson).not.toContain("offsetDistance1");
+    expect(nativeJson).not.toContain("hasPierceParameter");
+    expect(nativeJson).not.toContain("pierceParameter");
+    expect(nativeJson).toContain('"hasOffsetData2": true');
+    expect(nativeJson).toContain('"offsetOrientation2": true');
+    expect(nativeJson).toContain('"offsetDistance2": 0.02');
+    expect(nativeJson).not.toMatch(/^\s*"type": \d+/m);
+    expect(nativeJson).not.toContain('"emptyName"');
+    expect(nativeJson).not.toContain('"subFeatures"');
+    expect(nativeJson).not.toContain('"emptyMetadata"');
+    expect(nativeJson).not.toContain('"units"');
+    expect(nativeJson).not.toContain('"value": 0');
+    expect(nativeJson).not.toContain('"isInteger"');
+    expect(nativeJson).toContain('"expression": "20 mm"');
+    const definition = JSON.parse(nativeJson);
+    expect(definition.message).not.toHaveProperty("parameters");
+    expect(definition.message.constraints[0].message.parameters).toEqual([
+      {
+        typeName: "BTMParameterString",
+        message: { value: "entity-1", parameterId: "localFirst" },
+      },
+      {
+        typeName: "BTMParameterQuantity",
+        message: { expression: "20 mm", parameterId: "length" },
+      },
+    ]);
+    expect(markdown).toContain("Sketch selection");
+    expect(markdown).not.toContain("DO NOT COPY Face");
+    expect(markdown).not.toContain("## Feature list");
+    expect(markdown).not.toContain("## Variables");
+    expect(markdown).not.toContain("## Viewport");
+    expect(markdown).not.toContain("entire Part Studio");
+    expect(markdown).toContain("## Native data compaction");
+    expect(markdown).toContain("intentionally shortened");
+    expect(markdown).toContain("Numeric `type`");
+    expect(markdown).toContain("root `parameters` field");
+    expect(markdown).toContain("`nodeId`");
+    expect(markdown).toContain("`units`, normalized `value`, and `isInteger`");
+    expect(markdown).toContain("`labelRatio`");
+    expect(markdown).toContain("`hasOffsetDataN`");
+    expect(markdown).toContain("`hasPierceParameter`");
+  });
+  it("fails closed when the active sketch definition is unavailable", () => {
+    const snapshot: AiContextSnapshot = {
+      scope: "sketch",
+      capturedAt: "now",
+      url: "https://cad.onshape.com/",
+      ids: {
+        documentId: null,
+        referenceType: null,
+        referenceId: null,
+        elementId: null,
+      },
+      documentTitle: "Test",
+      documentName: null,
+      elementName: null,
+      toolbarType: "Sketch",
+      currentTool: null,
+      featureDialogOpen: false,
+      selections: [],
+      sketch: { featureId: null, name: null, definition: null },
+    };
+    const markdown = formatContextAsMarkdown(snapshot);
+    expect(markdown).toContain("Active sketch definition unavailable.");
+    expect(markdown).not.toContain("```json");
+    expect(markdown).not.toContain("Native variable definitions");
   });
   it("caps encoded context safely, including emoji and split surrogate pairs", () => {
     const url = buildChatbotUrl(

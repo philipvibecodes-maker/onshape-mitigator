@@ -32,7 +32,7 @@ Use `*.test.tsx` for Vitest/JSDOM tests and `*.spec.ts` for Playwright scenarios
 
 ## Commit & Pull Request Guidelines
 
-History uses imperative, descriptive subjects, such as “Keep sketch collapse toggle clear of native controls.” Keep commits focused. PRs should explain the behavior change, link relevant issues, report validation and limitations, and include screenshots for visible UI changes.
+History uses imperative, descriptive subjects, such as “Keep sketch collapse toggle clear of native controls.” Keep commits focused. PRs should explain the behavior change, link relevant issues, and report validation and limitations.
 
 ## Agent Instructions
 
