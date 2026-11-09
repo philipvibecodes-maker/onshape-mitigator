@@ -12,8 +12,8 @@ A small standalone Chrome and Edge extension that makes Onshape easier to learn 
 Requires Node 22.12+ or Node 24 and a current desktop Chrome or Edge.
 
 ```sh
-npm ci
-npm run build
+pnpm install --frozen-lockfile
+pnpm run build
 ```
 
 Open `chrome://extensions` or `edge://extensions`, enable Developer mode, choose **Load unpacked**, and select `dist/`. Reload existing Onshape tabs after installation or updating. This version is distributed unpacked; no store publishing is configured.
@@ -51,15 +51,15 @@ The pen sidebar, keypad, floating actions, themes, canvas backgrounds, and fulls
 ## Development and verification
 
 ```sh
-npm ci
-npm run typecheck
-npm test
-npm run test:e2e
-npm run test:extension
-npm run build
+pnpm install --frozen-lockfile
+pnpm run typecheck
+pnpm test
+pnpm run test:e2e
+pnpm run test:extension
+pnpm run build
 ```
 
-Browser tests require Chromium: `npx playwright install chromium`, or set `CHROME_PATH` to a system Chromium/Chrome executable. See [tests](tests/README.md) and [build and verification](docs/build-and-verify.md).
+Browser tests require Chromium: `pnpm exec playwright install chromium`, or set `CHROME_PATH` to a system Chromium/Chrome executable. See [tests](tests/README.md) and [build and verification](docs/build-and-verify.md).
 
 The architecture separates isolated content UI, a small local settings store, DOM helpers, and a narrow page-context adapter. Bridge requests are restricted to validated state/model reads, sketch-dimension visibility, and standard-view commands; no general command or broadcast endpoint is exposed. Initial state is read explicitly, then refreshed and updated by scoped Angular event listeners. DOM helpers work without bridge readiness.
 
