@@ -17,7 +17,7 @@ E2E tests run **headless by default**, including the packaged extension test. Fo
 
 ## Unit coverage
 
-Settings migration preserves retained preferences, fills defaults, and ignores obsolete Rally actions. Tests cover exact shortcut modifiers and duplicate/malformed bindings, document URL references, partial Markdown context, Unicode-safe chatbot URL truncation, initial adapter state, unsupported requests, source/origin checks, correlated reply validation, and timeout cleanup.
+Settings migration preserves retained preferences, fills defaults, and ignores unknown actions. Tests cover exact shortcut modifiers and duplicate/malformed bindings, document URL references, partial Markdown context, Unicode-safe chatbot URL truncation, initial adapter state, unsupported requests, source/origin checks, correlated reply validation, and timeout cleanup.
 
 ## Browser fixtures
 

@@ -13,7 +13,7 @@ pnpm run build
 
 Use Node 22.12+ or Node 24. Browser checks use Playwright Chromium or `CHROME_PATH`; install with `pnpm exec playwright install chromium` if necessary.
 
-Inspect `dist/manifest.json`: Chromium Manifest V3, Onshape-only content scripts, storage/clipboardWrite permissions, and a service worker. The built adapter exposes only state/selection reads. No Firefox/Safari release packages or automatic store publishing are configured.
+Inspect `dist/manifest.json`: Chromium Manifest V3, Onshape-only content scripts, storage/clipboardWrite permissions, and a service worker. The built adapter exposes only state/selection reads. Distribution uses unpacked Chrome/Edge extensions; automatic store publishing is not configured.
 
 Load `dist/` unpacked through Chrome or Edge's extension management page and reload Onshape tabs. Keep the same unpacked path and extension ID to retain preferences across updates.
 
