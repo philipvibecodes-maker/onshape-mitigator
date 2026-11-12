@@ -7,29 +7,6 @@ dist.crx
 dist.pem
 dist.zip
 
-# macOS
-.DS_Store
-
-# Xcode build output
-build/
-DerivedData/
-
-# Xcode user settings
-xcuserdata/
-*.xcuserstate
-
-# Archives & releases
-*.xcarchive
-*.ipa
-*.pkg
-
-# Debug symbols
-*.dSYM
-*.dSYM.zip
-
-# Swift Package Manager
-.build/
-
 # Environment files
 .env
 .env.local

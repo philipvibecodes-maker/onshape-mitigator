@@ -1,6 +1,6 @@
 # Onshape Mitigator
 
-A small standalone Chrome and Edge extension that makes Onshape easier to learn and use. It keeps four Mitigator features and replaces the former Rally-based application with a minimal extension shell.
+A small Chrome and Edge extension that makes Onshape easier to learn and use.
 
 - **Instant tooltips:** hovering an icon in Onshape's `s` shortcut menu immediately shows its command name.
 - **Collapsible sketch panel:** collapse sketch options while leaving native finish/cancel controls available. The preference persists.
@@ -42,11 +42,9 @@ Collection happens only after a copy action. The clipboard receives the full Mar
 
 Selections and toolbar state depend on Onshape's internal Angular services. The copy action also makes read-only same-origin requests for the current Part Studio's native feature and variable definitions; if those endpoints are unavailable, copying still includes reachable DOM and URL information and clearly marks the missing reconstruction data. Clipboard failure is reported and does not open the chatbot. No analytics, accounts, API keys, backend, or background document uploads are used.
 
-## Updating from the fork
+## Updating
 
-When the browser retains the extension ID, the port migrates enabled state, retained shortcut bindings, sketch-collapse state, and chatbot settings. Sidebar-specific shortcuts and other Rally preferences are ignored. A new extension ID starts with defaults; browser storage is isolated per extension. There is no cross-installation settings transfer.
-
-The pen sidebar, keypad, floating actions, themes, canvas backgrounds, and fullscreen helpers are no longer part of Mitigator. Firefox and Safari are deferred.
+Rebuild the extension, reload it in the browser's extension management page, and reload open Onshape tabs. Keep the same unpacked path and extension ID to retain settings. A new extension ID starts with defaults because browser storage is isolated per extension.
 
 ## Development and verification
 
@@ -63,8 +61,8 @@ Browser tests require Chromium: `pnpm exec playwright install chromium`, or set 
 
 The architecture separates isolated content UI, a small local settings store, DOM helpers, and a narrow page-context adapter. Bridge requests are restricted to validated state/model reads, sketch-dimension visibility, and standard-view commands; no general command or broadcast endpoint is exposed. Initial state is read explicitly, then refreshed and updated by scoped Angular event listeners. DOM helpers work without bridge readiness.
 
-## Attribution and independence
+## License and attribution
 
-The extension began as a fork of [Rally for Onshape](https://github.com/RileyDavidson-Evans/onshape-plus), by Riley Davidson-Evans. The standalone port selectively reuses MIT-licensed code and command-label data; it does not include or depend on the Rally application. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+See [LICENSE](LICENSE) and [NOTICE](NOTICE) for licensing and attribution for reused code and command-label data.
 
-Onshape Mitigator is an independent community project, unaffiliated with Onshape, PTC, or Rally for Onshape. Trademarks belong to their owners.
+Onshape Mitigator is an independent community project, unaffiliated with Onshape or PTC. Trademarks belong to their owners.
