@@ -173,10 +173,70 @@
           },
         },
       };
+      document.cookie = "XSRF-TOKEN=fixture-token";
+      window.featureScriptReads = 0;
       window.fetch = async (url) => {
         const value = String(url);
+        if (value.includes("/featurescript?")) {
+          window.featureScriptReads++;
+          const rollback = Number(new URL(value, location.href).searchParams.get("rollbackBarIndex"));
+          const before = rollback === 1;
+          const query = (transientId) => ({ queryType: "TRANSIENT", transientId });
+          const face = (id, edges) => ({
+            id,
+            kind: "FACE",
+            surface: {
+              surfaceType: id === "JHC" ? "CYLINDER" : "PLANE",
+              origin: [0, 0, 0],
+              normal: [0, 0, 1],
+              x: [1, 0, 0],
+            },
+            area: 0.001,
+            edges: edges.map(query),
+          });
+          const edge = (id, faces) => ({
+            id,
+            kind: "EDGE",
+            curve: { curveType: "LINE", origin: [0, 0, 0], direction: [1, 0, 0] },
+            length: 0.02,
+            faces: faces.map(query),
+          });
+          const result = before
+            ? {
+                selected: [face("JGC", ["JGB"]), edge("JGB", ["JGC"])],
+                faces: [],
+                edges: [],
+                createdFaces: [],
+                createdEdges: [],
+              }
+            : {
+                selected: [face("face-1", ["JHB"]), edge("JHB", ["face-1"])],
+                faces: [face("JHC", ["JHB"])],
+                edges: [edge("JHB", ["JHC"])],
+                createdFaces: [query("JHC")],
+                createdEdges: [query("JHB")],
+              };
+          return {
+            ok: true,
+            text: async () => JSON.stringify({
+              result,
+              sourceMicroversion: "fixture-microversion",
+              console: "",
+              notices: [],
+            }),
+          };
+        }
         const data = value.endsWith("/features")
           ? {
+              sourceMicroversion: "fixture-microversion",
+              featureStates: [
+                {
+                  key: "extrude-1",
+                  value: {
+                    message: { featureStatus: "OK", inactive: false },
+                  },
+                },
+              ],
               features: [
                 {
                   type: 151,
@@ -232,7 +292,26 @@
                     featureId: "extrude-1",
                     name: "DO NOT COPY Extrude",
                     featureType: "extrude",
-                    parameters: [{ sentinel: "DO_NOT_COPY_EXTRUDE_VALUE" }],
+                    suppressed: false,
+                    parameters: [
+                      {
+                        typeName: "BTMParameterQueryList",
+                        message: {
+                          parameterId: "entities",
+                          queries: [{ message: { geometryIds: ["JGC"] } }],
+                        },
+                      },
+                      {
+                        typeName: "BTMParameterQuantity",
+                        message: {
+                          parameterId: "depth",
+                          expression: "25 mm",
+                          units: "",
+                          value: 0,
+                          isInteger: false,
+                        },
+                      },
+                    ],
                   },
                 },
               ],
@@ -240,6 +319,17 @@
           : {
               variables: [
                 { name: "DO_NOT_COPY_VARIABLE", value: "DO_NOT_COPY_VARIABLE_VALUE" },
+                {
+                  type: 147,
+                  typeName: "BTMParameterQuantity",
+                  message: {
+                    name: "DOCUMENT_QUANTITY_SENTINEL",
+                    units: "",
+                    value: 0,
+                    expression: "10 mm",
+                    isInteger: false,
+                  },
+                },
               ],
             };
         return {

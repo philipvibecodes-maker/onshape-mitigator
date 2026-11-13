@@ -373,7 +373,7 @@ test("copy shares sketch context only on request and honors chatbot preferences"
   expect(nativeJson).not.toContain("hasPierceParameter");
   expect(nativeJson).not.toContain("pierceParameter");
   expect(nativeJson).not.toContain('"parameterId": "sketchPlane"');
-  expect(nativeJson).toContain('"parameterId": "localFirst"');
+  expect(nativeJson).toContain('"parameterId":"localFirst"');
   expect(nativeJson).not.toMatch(/^\s*"type": \d+/m);
   expect(copied).toContain("Document ID: doc");
   expect(copied).toContain("Workspace mode: Sketch");
@@ -400,7 +400,7 @@ test("copy shares sketch context only on request and honors chatbot preferences"
   expect(await page.evaluate(() => (window as any).opened.length)).toBe(1);
 });
 
-test("document copies retain full model context outside sketch editing", async ({
+test("document topology copies describe feature inputs and outputs without dangling ids", async ({
   page,
 }) => {
   await openFixture(page, "Part Studio");
@@ -412,13 +412,101 @@ test("document copies retain full model context outside sketch editing", async (
     .poll(() => page.evaluate(() => (window as any).copied.length))
     .toBe(1);
   const copied = await page.evaluate(() => (window as any).copied[0]);
-  expect(copied).toMatch(/^# Onshape Context/);
+  expect(copied).toMatch(/^# Onshape Topology Context/);
+  expect(copied).toContain("rollbackBarIndex");
+  expect(copied).toContain('"entities": ["JGC"]');
+  expect(copied).toContain('"id":"JGC"');
+  expect(copied).toContain('"id":"JGB"');
+  expect(copied).toContain('"id":"JHC"');
+  expect(copied).toContain('"id":"JHB"');
+  expect(copied).toContain('"surfaceType":"CYLINDER"');
+  expect(copied).toContain('"origin":[0,0,0]');
+  expect(copied).toContain('"edges":["JGB"]');
+  expect(copied).toContain("underlying face surface");
+  expect(copied).not.toContain("COINCIDENT");
+  expect(copied).not.toContain("BTMSketchCurve");
+  expect(copied).toMatch(/"affectedInputs": \{[\s\S]*?"entities": \[\n/);
+  expect(copied).toContain('"resultingNeighborhood"');
+  expect(copied).toContain('"unmatchedTopology"');
+  expect(copied).not.toContain('"beforeFeature"');
+  expect(copied).not.toContain('"afterFeature"');
+  expect(await page.evaluate(() => (window as any).featureScriptReads)).toBe(3);
+});
+
+test("detailed document copies translate native wrappers into semantic JSON", async ({
+  page,
+}) => {
+  await openFixture(page, "Part Studio");
+  await menu(page);
+  await page
+    .getByRole("button", { name: "Copy detailed info", exact: true })
+    .click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).copied.length))
+    .toBe(1);
+  const copied = await page.evaluate(() => (window as any).copied[0]);
+  const nativeJsonBlocks = Array.from(
+    copied.matchAll(/```json\n([\s\S]*?)\n```/g),
+    (match) => match[1],
+  );
+  const nativeFeatures = nativeJsonBlocks[0] ?? "";
+  const nativeVariables = nativeJsonBlocks[1] ?? "";
+  expect(copied).toMatch(/^# Onshape Detailed Context/);
+  expect(copied).toContain("## Detailed JSON translation");
+  expect(copied).toContain(
+    "The definitions below are translated semantic JSON",
+  );
   expect(copied).toContain("## Reconstruction data");
   expect(copied).toContain("DO NOT COPY Extrude");
   expect(copied).toContain("DO_NOT_COPY_VARIABLE");
   expect(copied).toContain("## Feature list");
   expect(copied).toContain("## Variables");
-  expect(copied).toContain("### Native variable definitions");
+  expect(copied).toContain("### Translated variable definitions");
+  expect(nativeFeatures).not.toMatch(/^\s*"type": \d+/m);
+  expect(nativeFeatures).not.toContain('"parameterId": "sketchPlane"');
+  expect(nativeFeatures).not.toContain("hasOffsetData1");
+  expect(nativeFeatures).not.toContain("hasPierceParameter");
+  expect(nativeFeatures).toContain('"localFirst":"entity-1"');
+  expect(nativeFeatures).not.toContain('"typeName"');
+  expect(JSON.stringify(JSON.parse(nativeFeatures).features)).not.toContain('"message"');
+  expect(nativeVariables).toContain("DOCUMENT_QUANTITY_SENTINEL");
+  expect(nativeVariables).toContain('"expression":"10 mm"');
+  expect(nativeVariables).not.toMatch(/^\s*"type": \d+/m);
+  expect(nativeVariables).not.toContain('"units"');
+  expect(nativeVariables).not.toContain('"value": 0');
+  expect(nativeVariables).not.toContain('"isInteger"');
+  expect(nativeFeatures).toContain('"QueryList":"JGC"');
+  expect(JSON.parse(nativeFeatures).features[1].parameters).toEqual({
+    entities: { QueryList: "JGC" },
+    depth: "25 mm",
+  });
+  expect(nativeFeatures).toMatch(/"features": \[\n/);
+  expect(nativeVariables).toMatch(/"variables": \[\n/);
+  expect(await page.evaluate(() => (window as any).featureScriptReads)).toBe(0);
+});
+
+test("detailed sketch copying translates constraints and ordinary copying keeps its schema", async ({ page }) => {
+  await openFixture(page);
+  await menu(page);
+  await page.getByRole("button", { name: "Copy detailed info", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).copied.length)).toBe(1);
+  const detailed = await page.evaluate(() => (window as any).copied[0]);
+  const json = detailed.match(/```json\n([\s\S]*?)\n```/)?.[1] ?? "null";
+  expect(detailed).toContain("## Detailed JSON translation");
+  expect(detailed).toContain("## Translated sketch definition");
+  expect(JSON.parse(json)).toMatchObject({
+    featureId: "sketch-1",
+    constraints: [{ constraintType: "COINCIDENT", parameters: { localFirst: "entity-1" } }],
+  });
+  expect(JSON.parse(json)).not.toHaveProperty("parameters");
+  expect(json).not.toContain('"typeName"');
+  expect(json).not.toContain('"message"');
+  await page.getByRole("button", { name: "Copy context for AI", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).copied.length)).toBe(2);
+  const ordinary = await page.evaluate(() => (window as any).copied[1]);
+  expect(ordinary).toContain("## Native data compaction");
+  expect(ordinary).toContain('"parameterId":"localFirst"');
+  expect(await page.evaluate(() => (window as any).featureScriptReads)).toBe(0);
 });
 
 test("sketch copying fails closed when the active row cannot be matched", async ({

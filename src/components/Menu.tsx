@@ -12,19 +12,21 @@ export function Menu({
   status,
   close,
   copy,
+  copyDetailed,
   configure,
   toggleEnabled,
 }: {
   enabled: boolean;
   canCopy: boolean;
   canConfigure?: boolean;
-  copying: boolean;
+  copying: "topology" | "detailed" | null;
   shortcut: string;
   popup?: boolean;
   scale?: number;
   status?: string;
   close: () => void;
   copy: () => void;
+  copyDetailed: () => void;
   configure: () => void;
   toggleEnabled: () => void;
 }) {
@@ -54,10 +56,16 @@ export function Menu({
         <>
           <button
             data-menu-primary
-            disabled={!canCopy || copying}
+            disabled={!canCopy || copying !== null}
             onClick={copy}
           >
-            {copying ? "Copying context…" : "Copy context for AI"}
+            {copying === "topology" ? "Copying context…" : "Copy context for AI"}
+          </button>
+          <button
+            disabled={!canCopy || copying !== null}
+            onClick={copyDetailed}
+          >
+            {copying === "detailed" ? "Copying detailed info…" : "Copy detailed info"}
           </button>
           <button disabled={!canConfigure} onClick={configure}>Settings</button>
         </>

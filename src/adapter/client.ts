@@ -5,11 +5,13 @@ import {
   EXECUTE_STANDARD_VIEW,
   isSelections,
   isModelData,
+  isTopologyModelData,
   isState,
   type ReadKind,
 } from "./protocol";
 import type {
   ModelData,
+  TopologyModelData,
   OnshapeState,
   Selection,
   StandardView,
@@ -29,12 +31,18 @@ export function readPage(
 ): Promise<Selection[]>;
 export function readPage(kind: "model", timeoutMs?: number): Promise<ModelData>;
 export function readPage(
+  kind: "topology-model",
+  timeoutMs?: number,
+): Promise<TopologyModelData>;
+export function readPage(
   kind: ReadKind,
   timeoutMs = 1500,
-): Promise<OnshapeState | Selection[] | ModelData> {
+): Promise<OnshapeState | Selection[] | ModelData | TopologyModelData> {
   const requestId = crypto.randomUUID();
   return new Promise((resolve) => {
-    const finish = (value: OnshapeState | Selection[] | ModelData) => {
+    const finish = (
+      value: OnshapeState | Selection[] | ModelData | TopologyModelData,
+    ) => {
       clearTimeout(timer);
       window.removeEventListener("message", onMessage);
       resolve(value);
@@ -54,7 +62,9 @@ export function readPage(
           ? isState(v.data)
           : kind === "selections"
             ? isSelections(v.data)
-            : isModelData(v.data);
+            : kind === "model"
+              ? isModelData(v.data)
+              : isTopologyModelData(v.data);
       if (valid)
         finish(v.data);
     };
@@ -65,7 +75,20 @@ export function readPage(
             ? { ...EMPTY_STATE }
             : kind === "selections"
               ? []
-              : { features: null, variables: null },
+              : kind === "model"
+                ? { features: null, variables: null }
+                : {
+                    sourceMicroversion: null,
+                    variables: null,
+                    features: [],
+                    currentSelection: null,
+                    warnings: ["Topology collection timed out."],
+                    truncated: {
+                      featureCount: 0,
+                      entityCount: 0,
+                      characterCount: 0,
+                    },
+                  },
         ),
       timeoutMs,
     );

@@ -5,7 +5,7 @@ A small standalone Chrome and Edge extension that makes Onshape easier to learn 
 - **Instant tooltips:** hovering an icon in Onshape's `s` shortcut menu immediately shows its command name.
 - **Collapsible sketch panel:** collapse sketch options while leaving native finish/cancel controls available. The preference persists.
 - **Configurable shortcuts:** includes toggling the variables table and spatial Alt+numpad view mappings.
-- **AI-ready document context:** copy a Markdown snapshot of the document URL/IDs, names, toolbar/tool state, selections, visible labels, and native Part Studio feature/variable definitions suitable for reconstructing the model. Optionally open a configured chatbot.
+- **AI-ready document context:** copy compact, rollback-scoped Part Studio feature/topology data, or use **Copy detailed info** for compacted native feature and variable definitions. Optionally open a configured chatbot.
 
 ## Install in Chrome or Edge
 
@@ -18,7 +18,7 @@ pnpm run build
 
 Open `chrome://extensions` or `edge://extensions`, enable Developer mode, choose **Load unpacked**, and select `dist/`. Reload existing Onshape tabs after installation or updating. This version is distributed unpacked; no store publishing is configured.
 
-Click the browser extension icon to open a popup anchored to that icon. `Alt+M` opens the same popup when the toolbar is available. In browser or page fullscreen, the shortcut toggles a matching menu at the upper-right edge of the page; this also serves as a fallback if the browser cannot open its popup. Both menus provide **Copy context for AI**, **Settings**, and **Disable extension**. Settings opens in the Onshape tab. When disabled, the icon or menu shortcut still exposes **Enable extension**. Changing enabled state reloads open Onshape tabs.
+Click the browser extension icon to open a popup anchored to that icon. `Alt+M` opens the same popup when the toolbar is available. In browser or page fullscreen, the shortcut toggles a matching menu at the upper-right edge of the page; this also serves as a fallback if the browser cannot open its popup. Both menus provide **Copy context for AI**, **Copy detailed info**, **Settings**, and **Disable extension**. Settings opens in the Onshape tab. When disabled, the icon or menu shortcut still exposes **Enable extension**. Changing enabled state reloads open Onshape tabs.
 
 The extension runs on `https://*.onshape.com/*`; modeling helpers activate on document pages. It leaves Onshape's theme, canvas, native shortcuts, and normal editing controls alone.
 
@@ -38,9 +38,11 @@ Alt+numpad view mappings are configured separately by physical key, so they work
 
 ## Context sharing
 
-Collection happens only after a copy action. The clipboard receives the full Markdown snapshot. ChatGPT is the default destination (`https://chatgpt.com/?q={context}`), with automatic opening enabled. You can change the HTTP/HTTPS URL or turn opening off. A URL containing `{context}` shares a URL-encoded snapshot with that website; URLs are capped at 6,000 characters by shortening context. Without the placeholder, paste the clipboard into the chatbot yourself.
+Collection happens only after a copy action. **Copy context for AI** evaluates the faces, edges, bodies, and vertices consumed or changed by Part Studio features. The output keeps Onshape's analytic classifications, feature parameters, query roles, rollback boundaries, and explicit unresolved/truncation notices; it does not invent semantic face names. While editing a sketch, copying remains scoped to that sketch. **Copy detailed info** skips FeatureScript evaluation and copies the compacted native definitions instead.
 
-Selections and toolbar state depend on Onshape's internal Angular services. The copy action also makes read-only same-origin requests for the current Part Studio's native feature and variable definitions; if those endpoints are unavailable, copying still includes reachable DOM and URL information and clearly marks the missing reconstruction data. Clipboard failure is reported and does not open the chatbot. No analytics, accounts, API keys, backend, or background document uploads are used.
+The clipboard receives the full Markdown snapshot. ChatGPT is the default destination (`https://chatgpt.com/?q={context}`), with automatic opening enabled. You can change the HTTP/HTTPS URL or turn opening off. A URL containing `{context}` shares a URL-encoded snapshot with that website; URLs are capped at 6,000 characters by shortening context. Without the placeholder, paste the clipboard into the chatbot yourself.
+
+Selections and toolbar state depend on Onshape's internal Angular services. Copy actions make read-only same-origin requests for the current Part Studio's feature and variable definitions. The topology action additionally runs a fixed, read-only FeatureScript evaluator; it is bounded to 100 features, 300 entity definitions, 750,000 serialized characters, and 30 seconds. If an endpoint is unavailable, copying still includes reachable information and clearly marks missing data. Clipboard failure is reported and does not open the chatbot. No analytics, accounts, API keys, backend, or background document uploads are used.
 
 ## Updating from the fork
 

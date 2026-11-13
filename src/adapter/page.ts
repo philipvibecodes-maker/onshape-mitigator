@@ -11,7 +11,9 @@ import type {
   OnshapeToolbarMode,
   Selection,
   StandardView,
+  TopologyModelData,
 } from "../types";
+import { readTopologyModel } from "./topology";
 type Service = Record<string, any>;
 type Injector = { get(name: string): Service };
 type DimensionElement = { hide?: () => void; show?: () => void };
@@ -165,7 +167,7 @@ export function readSelections(): Selection[] {
 }
 function readModelUrl(): string | null {
   const match = location.pathname.match(
-    /\/documents\/([^/]+)\/(w|v)\/([^/]+)\/e\/([^/?#]+)/,
+    /\/documents\/([^/]+)\/(w|v|m)\/([^/]+)\/e\/([^/?#]+)/,
   );
   if (!match) return null;
   const [, documentId, referenceType, referenceId, elementId] = match;
@@ -270,7 +272,39 @@ export function handleRead(event: MessageEvent): void {
     );
     return;
   }
-  let data: OnshapeState | Selection[] | ModelData;
+  if (kind === "topology-model") {
+    const base = readModelUrl();
+    if (!base) {
+      window.postMessage(
+        {
+          type: RESPONSE,
+          requestId,
+          kind,
+          data: {
+            sourceMicroversion: null,
+            variables: null,
+            features: [],
+            currentSelection: null,
+            warnings: ["Topology evaluation is available only in a Part Studio."],
+            truncated: { featureCount: 0, entityCount: 0, characterCount: 0 },
+          } satisfies TopologyModelData,
+        },
+        location.origin,
+      );
+      return;
+    }
+    const selectionIds = readSelections()
+      .map((selection) => selection.id)
+      .filter((id): id is string => typeof id === "string");
+    void readTopologyModel(base, selectionIds).then((data) =>
+      window.postMessage(
+        { type: RESPONSE, requestId, kind, data },
+        location.origin,
+      ),
+    );
+    return;
+  }
+  let data: OnshapeState | Selection[];
   try {
     data =
       kind === "state"

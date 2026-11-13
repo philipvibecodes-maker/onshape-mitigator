@@ -13,7 +13,7 @@ function Popup({ initial }: { initial: Settings }) {
   const [tabId, setTabId] = useState<number>();
   const [available, setAvailable] = useState(false);
   const [documentPage, setDocumentPage] = useState(false);
-  const [copying, setCopying] = useState(false);
+  const [copying, setCopying] = useState<"topology" | "detailed" | null>(null);
   const [status, setStatus] = useState("");
   useEffect(() => {
     let cancelled = false;
@@ -35,25 +35,34 @@ function Popup({ initial }: { initial: Settings }) {
     return () => { cancelled = true; };
   }, []);
 
-  async function copy() {
+  async function copy(mode: "topology" | "detailed" = "topology") {
     if (copying || tabId === undefined) return;
-    setCopying(true);
+    setCopying(mode);
     try {
       const reply = await browser.tabs.sendMessage(tabId, {
         type: "onshape-mitigator:document-context",
+        mode,
       }) as { markdown?: string } | undefined;
       if (typeof reply?.markdown !== "string") throw new Error();
       if (!(await writeClipboard(reply.markdown))) throw new Error();
-      setStatus("Context copied for AI");
+      setStatus(
+        mode === "detailed"
+          ? "Detailed info copied for AI"
+          : "Context copied for AI",
+      );
       if (settings.aiOpenAfterCopy && settings.aiChatbotUrl) {
         const url = new URL(buildChatbotUrl(settings.aiChatbotUrl, reply.markdown));
         if (url.protocol === "http:" || url.protocol === "https:")
           await browser.tabs.create({ url: url.href });
       }
     } catch {
-      setStatus("Could not copy document context. Reload Onshape and try again.");
+      setStatus(
+        mode === "detailed"
+          ? "Could not copy detailed info. Reload Onshape and try again."
+          : "Could not copy document context. Reload Onshape and try again.",
+      );
     } finally {
-      setCopying(false);
+      setCopying(null);
     }
   }
   async function configure() {
@@ -85,6 +94,7 @@ function Popup({ initial }: { initial: Settings }) {
     status={status}
     close={() => window.close()}
     copy={() => void copy()}
+    copyDetailed={() => void copy("detailed")}
     configure={() => void configure()}
     toggleEnabled={() => void toggleEnabled()}
   />;

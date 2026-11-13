@@ -1,10 +1,15 @@
 import { getStorageItem } from "./storage";
 import { readPage } from "./adapter/client";
+import { translateDetailedDefinition } from "./detailedDefinition";
 import type {
   OnshapeToolbarMode,
   Selection as ClassifiedOnshapeSelection,
   ModelData,
+  TopologyFeatureEvaluation,
+  TopologyModelData,
 } from "./types";
+
+export type ContextCopyMode = "topology" | "detailed";
 
 export type OnshapeDocumentIds = {
   documentId: string | null;
@@ -56,9 +61,16 @@ type SketchContextSnapshot = ContextSource & {
   };
 };
 
+type TopologyContextSnapshot = ContextSource & {
+  scope: "topology";
+  selections: ClassifiedOnshapeSelection[];
+  topology: TopologyModelData;
+};
+
 export type AiContextSnapshot =
   | DocumentContextSnapshot
-  | SketchContextSnapshot;
+  | SketchContextSnapshot
+  | TopologyContextSnapshot;
 
 export function parseOnshapeUrl(href: string): OnshapeDocumentIds {
   const url = new URL(href);
@@ -215,7 +227,10 @@ function parameterId(value: unknown): string | null {
   return typeof message?.parameterId === "string" ? message.parameterId : null;
 }
 
-function compactFeatureParameters(value: Record<string, unknown>): unknown {
+function compactFeatureParameters(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
+  if (value.typeName !== "BTMFeature") return value;
   const message = value.message;
   if (!message || typeof message !== "object") return value;
   const feature = message as Record<string, unknown>;
@@ -257,7 +272,7 @@ function compactFeatureParameters(value: Record<string, unknown>): unknown {
     if (thin)
       ["thickness", "thickness1", "thickness2", "surfaceEntities", "wallShape"].forEach((id) => enabled.add(id));
 
-    feature.parameters = parameters.filter((item) => {
+    const compactedParameters = parameters.filter((item) => {
       const id = parameterId(item);
       if (!id) return false;
       if (enabled.has(id)) return true;
@@ -267,6 +282,7 @@ function compactFeatureParameters(value: Record<string, unknown>): unknown {
       }
       return false;
     });
+    return { ...value, message: { ...feature, parameters: compactedParameters } };
   }
 
   return value;
@@ -392,9 +408,11 @@ function compactModelDefinition(value: unknown): unknown {
       .filter((child) => child !== undefined);
   if (!value || typeof value !== "object") return value;
 
-  const source = compactSketchConstraintData(
-    omitRedundantQuantityMetadata(
-      omitSketchFeatureParameters(value as Record<string, unknown>),
+  const source = compactFeatureParameters(
+    compactSketchConstraintData(
+      omitRedundantQuantityMetadata(
+        omitSketchFeatureParameters(value as Record<string, unknown>),
+      ),
     ),
   );
   if (
@@ -402,7 +420,6 @@ function compactModelDefinition(value: unknown): unknown {
     SKETCH_ANNOTATION_PARAMETER_IDS.has(parameterId(source) ?? "")
   )
     return undefined;
-  if (source.typeName === "BTMFeature") compactFeatureParameters(source);
   if (source.typeName === "BTMParameterQueryList") {
     const msg = source.message as { queries?: unknown[] } | undefined;
     if (Array.isArray(msg?.queries) && msg.queries.length === 0) return undefined;
@@ -426,6 +443,61 @@ function compactModelDefinition(value: unknown): unknown {
       .filter(
         ([, child]) => child !== undefined && !isEmptyCompactedValue(child),
       ),
+  );
+}
+
+function stringifyContextJson(value: unknown, indent = 0): string {
+  if (Array.isArray(value)) {
+    if (
+      value.length === 0 ||
+      value.every((child) => typeof child === "string") ||
+      value.every((child) => typeof child === "number")
+    )
+      return JSON.stringify(value);
+    const outer = " ".repeat(indent);
+    const inner = " ".repeat(indent + 2);
+    return [
+      "[",
+      ...value.map(
+        (child, index) => {
+          const compactLeaf =
+            child &&
+            typeof child === "object" &&
+            !containsObjectArray(child);
+          return `${inner}${compactLeaf ? JSON.stringify(child) : stringifyContextJson(child, indent + 2)}${index < value.length - 1 ? "," : ""}`;
+        },
+      ),
+      `${outer}]`,
+    ].join("\n");
+  }
+  if (!value || typeof value !== "object") return JSON.stringify(value);
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (!entries.length) return "{}";
+  const outer = " ".repeat(indent);
+  const inner = " ".repeat(indent + 2);
+  return [
+    "{",
+    ...entries.map(
+      ([key, child], index) =>
+        `${inner}${JSON.stringify(key)}: ${stringifyContextJson(child, indent + 2)}${index < entries.length - 1 ? "," : ""}`,
+    ),
+    `${outer}}`,
+  ].join("\n");
+}
+
+function containsObjectArray(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    if (
+      value.length === 0 ||
+      value.every((child) => typeof child === "string") ||
+      value.every((child) => typeof child === "number")
+    )
+      return false;
+    return true;
+  }
+  if (!value || typeof value !== "object") return false;
+  return Object.values(value as Record<string, unknown>).some(
+    containsObjectArray,
   );
 }
 
@@ -554,17 +626,22 @@ export function findSketchDefinition(
     : null;
 }
 
-export async function collectAiContext(opts?: {
+type CollectionOptions = {
   toolbarType?: OnshapeToolbarMode | null;
   currentTool?: string | null;
-}): Promise<AiContextSnapshot> {
+};
+
+function contextScope(opts?: CollectionOptions): "sketch" | "document" {
   const sketchDialogOpen = Boolean(
     document.querySelector('#feature-dialog[feature-type="newSketch"]'),
   );
-  const sketchIdentity = getActiveSketchIdentity();
-  const scope =
-    opts?.toolbarType === "Sketch" || sketchDialogOpen ? "sketch" : "document";
-  const source: ContextSource = {
+  return opts?.toolbarType === "Sketch" || sketchDialogOpen
+    ? "sketch"
+    : "document";
+}
+
+function collectSource(opts?: CollectionOptions): ContextSource {
+  return {
     capturedAt: new Date().toISOString(),
     url: window.location.href,
     ids: parseOnshapeUrl(window.location.href),
@@ -575,6 +652,14 @@ export async function collectAiContext(opts?: {
     currentTool: opts?.currentTool ?? null,
     featureDialogOpen: Boolean(document.querySelector("#feature-dialog")),
   };
+}
+
+export async function collectAiContext(
+  opts?: CollectionOptions,
+): Promise<DocumentContextSnapshot | SketchContextSnapshot> {
+  const sketchIdentity = getActiveSketchIdentity();
+  const scope = contextScope(opts);
+  const source = collectSource(opts);
   const [selections, model] = await Promise.all([
     getCurrentSelections().catch(() => []),
     readPage("model").catch(() => ({ features: null, variables: null })),
@@ -608,6 +693,35 @@ export async function collectAiContext(opts?: {
   };
 }
 
+export async function collectTopologyContext(
+  opts?: CollectionOptions,
+): Promise<TopologyContextSnapshot | SketchContextSnapshot> {
+  if (contextScope(opts) === "sketch") {
+    const sketch = await collectAiContext(opts);
+    if (sketch.scope === "sketch") return sketch;
+  }
+  const source = collectSource(opts);
+  const [selections, topology] = await Promise.all([
+    getCurrentSelections().catch(() => []),
+    readPage("topology-model", 32_000),
+  ]);
+  return {
+    ...source,
+    scope: "topology",
+    selections,
+    topology,
+  };
+}
+
+export function collectContext(
+  mode: ContextCopyMode,
+  opts?: CollectionOptions,
+): Promise<AiContextSnapshot> {
+  return mode === "detailed"
+    ? collectAiContext(opts)
+    : collectTopologyContext(opts);
+}
+
 function formatSource(
   snapshot: AiContextSnapshot,
   heading: "Document" | "Source",
@@ -631,7 +745,39 @@ function formatSource(
   return lines;
 }
 
-function formatSketchContext(snapshot: SketchContextSnapshot): string {
+function formatNativeDataCompactionSummary(
+  scope: "document" | "sketch",
+  semantic = false,
+): string[] {
+  return [
+    semantic ? "## Detailed JSON translation" : "## Native data compaction",
+    semantic
+      ? "The definitions below are translated semantic JSON for reading, not an Onshape API request payload. BTM transport envelopes are removed when their meaning is preserved."
+      : `The native ${scope === "sketch" ? "sketch definition" : "Part Studio definitions"} below ${scope === "sketch" ? "is" : "are"} intentionally shortened. The following data is removed:`,
+    ...(semantic
+      ? [
+          "- `parameterId` becomes a key in a `parameters` object. Boolean and string parameters become scalar values; quantities become their expression strings; enums become `{\"enum\": enumName, \"value\": value}`.",
+          "- A query list containing one plain individual geometry query becomes `{\"QueryList\": id}` or `{\"QueryList\": [ids]}`. Geometry IDs retain their exact spelling, case, order, and duplicates.",
+          "- Redundant BTM `typeName`/`btType` and `message` wrapping is removed. Geometry and other payloads without a semantic discriminator retain a short `kind`; unknown variants retain their type identity.",
+          "- Structured or multiple query records, duplicate or missing parameter IDs, unknown fields, and wrapper/payload collisions retain a structural representation. Collisions use `$type`, `$message`, and `$wrapper` fields.",
+          "The existing shortening rules also remove the following data:",
+        ]
+      : []),
+    "- Numeric `type` when the readable `typeName` is present.",
+    "- The root `parameters` field of every sketch feature.",
+    "- Metadata fields: `nodeId`, `hasUserCode`, `namespace`, `libraryRelationType`, `parameterName`, `index`, `filter`, and `helpParameters`.",
+    "- Empty or unavailable values: `null`, `undefined`, empty strings, empty arrays, empty objects, and query-list parameters with no queries.",
+    "- Quantity metadata `units`, normalized `value`, and `isInteger` when a nonempty `expression` is present.",
+    "- Annotation-only sketch parameters: `labelRatio`, `labelAngle`, and `labelDistance`.",
+    "- Inactive constraint offset groups: `hasOffsetDataN`, `offsetOrientationN`, and `offsetDistanceN` when `hasOffsetDataN` is false.",
+    "- Inactive pierce data: `hasPierceParameter` and `pierceParameter` when `hasPierceParameter` is false.",
+  ];
+}
+
+function formatSketchContext(
+  snapshot: SketchContextSnapshot,
+  mode: ContextCopyMode,
+): string {
   const sketchSelections = snapshot.selections.filter(
     ({ kind }) => kind === "sketch" || kind === "sketch-entity",
   );
@@ -668,23 +814,25 @@ function formatSketchContext(snapshot: SketchContextSnapshot): string {
 
   lines.push(
     "",
-    "## Native data compaction",
-    "The native sketch definition below is intentionally shortened. The following data is removed:",
-    "- Numeric `type` when the readable `typeName` is present.",
-    "- The sketch feature's root `parameters` field.",
-    "- Metadata fields: `nodeId`, `hasUserCode`, `namespace`, `libraryRelationType`, `parameterName`, `index`, `filter`, and `helpParameters`.",
-    "- Empty or unavailable values: `null`, `undefined`, empty strings, empty arrays, empty objects, and query-list parameters with no queries.",
-    "- Quantity metadata `units`, normalized `value`, and `isInteger` when a nonempty `expression` is present.",
-    "- Annotation-only sketch parameters: `labelRatio`, `labelAngle`, and `labelDistance`.",
-    "- Inactive constraint offset groups: `hasOffsetDataN`, `offsetOrientationN`, and `offsetDistanceN` when `hasOffsetDataN` is false.",
-    "- Inactive pierce data: `hasPierceParameter` and `pierceParameter` when `hasPierceParameter` is false.",
+    ...formatNativeDataCompactionSummary("sketch", mode === "detailed"),
   );
 
-  lines.push("", "## Native sketch definition");
+  lines.push(
+    "",
+    mode === "detailed"
+      ? "## Translated sketch definition"
+      : "## Native sketch definition",
+  );
   if (snapshot.sketch.definition !== null) {
     lines.push("```json");
     lines.push(
-      JSON.stringify(compactModelDefinition(snapshot.sketch.definition), null, 2),
+      stringifyContextJson(
+        mode === "detailed"
+          ? translateDetailedDefinition(
+              compactModelDefinition(snapshot.sketch.definition),
+            )
+          : compactModelDefinition(snapshot.sketch.definition),
+      ),
     );
     lines.push("```");
   } else {
@@ -700,7 +848,7 @@ function formatSketchContext(snapshot: SketchContextSnapshot): string {
 
 function formatDocumentContext(snapshot: DocumentContextSnapshot): string {
   const lines: string[] = [
-    "# Onshape Context",
+    "# Onshape Detailed Context",
     "",
     `Captured: ${snapshot.capturedAt}`,
     "",
@@ -759,23 +907,29 @@ function formatDocumentContext(snapshot: DocumentContextSnapshot): string {
     for (const f of snapshot.features) lines.push(`- ${f}`);
   }
 
+  lines.push("", ...formatNativeDataCompactionSummary("document", true));
+
   lines.push("", "## Reconstruction data");
   lines.push(
-    "The following is the document's native Part Studio definition data. It contains the feature history, feature parameters, sketch geometry/constraints, references, and variables needed to reproduce the model.",
+    "The following translated Part Studio definition data retains the feature history, meaningful feature parameters, sketch geometry/constraints, references, and variables.",
   );
   if (snapshot.model.features !== null) {
-    lines.push("", "### Native feature definitions", "```json");
+    lines.push("", "### Translated feature definitions", "```json");
     lines.push(
-      JSON.stringify(compactModelDefinition(snapshot.model.features), null, 2),
+      stringifyContextJson(
+        translateDetailedDefinition(compactModelDefinition(snapshot.model.features)),
+      ),
     );
     lines.push("```");
   } else {
     lines.push("- Native feature definitions unavailable in this document state.");
   }
   if (snapshot.model.variables !== null) {
-    lines.push("", "### Native variable definitions", "```json");
+    lines.push("", "### Translated variable definitions", "```json");
     lines.push(
-      JSON.stringify(compactModelDefinition(snapshot.model.variables), null, 2),
+      stringifyContextJson(
+        translateDetailedDefinition(compactModelDefinition(snapshot.model.variables)),
+      ),
     );
     lines.push("```");
   } else {
@@ -791,9 +945,131 @@ function formatDocumentContext(snapshot: DocumentContextSnapshot): string {
   return lines.join("\n");
 }
 
-export function formatContextAsMarkdown(snapshot: AiContextSnapshot): string {
-  return snapshot.scope === "sketch"
-    ? formatSketchContext(snapshot)
+function topologyFeatureDefinition(
+  evaluation: TopologyFeatureEvaluation,
+): unknown {
+  const feature = unwrapFeature(evaluation.definition);
+  if (!feature) return null;
+  const parameters = Array.isArray(feature.parameters)
+    ? feature.parameters.filter((parameter) => {
+        if (!parameter || typeof parameter !== "object") return false;
+        return (parameter as { typeName?: unknown }).typeName !==
+          "BTMParameterQueryList";
+      })
+    : [];
+  const compacted = compactModelDefinition({
+    typeName: "BTMFeature",
+    message: {
+      featureId: evaluation.featureId,
+      name: evaluation.name,
+      featureType: evaluation.featureType,
+      suppressed: evaluation.suppressed,
+      parameters,
+    },
+  });
+  return unwrapFeature(compacted);
+}
+
+function formatTopologyContext(snapshot: TopologyContextSnapshot): string {
+  const lines: string[] = [
+    "# Onshape Topology Context",
+    "",
+    `Captured: ${snapshot.capturedAt}`,
+    "",
+    ...formatSource(snapshot, "Document"),
+    "",
+    "## Representation",
+    "- This is rollback-scoped evaluated topology, not a semantic interpretation of the model.",
+    "- `surfaceDefinition.surfaceType` and `curveDefinition.curveType` are Onshape evaluator classifications. For example, `CYLINDER` describes an underlying face surface and does not mean the overall model is a cylinder.",
+    "- Transient IDs are meaningful only within the graph's `rollbackBarIndex`.",
+    "- Coordinates, lengths, and radii are in metres; areas are in square metres; direction vectors are unitless.",
+    "- Raw sketch entities and constraints are omitted. Downstream features retain the evaluated regions and topology they consume.",
+    "- `createdByFeature` is Onshape's direct attribution. `unmatchedTopology` contains counts only and may include transient-ID churn; it does not claim that every unmatched ID is newly created or deleted geometry.",
+    "- Adjacency IDs are included only when their definitions are present in the same graph; omitted adjacency is reported by count.",
+    "",
+    "## State",
+    `- Workspace mode: ${snapshot.toolbarType ?? "unknown"}`,
+    `- Active tool: ${snapshot.currentTool ?? "none"}`,
+    `- Feature dialog open: ${snapshot.featureDialogOpen ? "yes" : "no"}`,
+    "",
+    "## Current selection",
+  ];
+  if (snapshot.selections.length) {
+    for (const selection of snapshot.selections) {
+      const detail = [
+        selection.kind,
+        "name" in selection ? selection.name : null,
+        selection.id,
+      ]
+        .filter(Boolean)
+        .join(" — ");
+      lines.push(`- ${detail}`);
+    }
+  } else {
+    lines.push("- (none reported; selection data may be unavailable)");
+  }
+
+  lines.push("", "## Collection status");
+  if (snapshot.topology.sourceMicroversion)
+    lines.push(`- Source microversion: ${snapshot.topology.sourceMicroversion}`);
+  const { featureCount, entityCount, characterCount } =
+    snapshot.topology.truncated;
+  lines.push(
+    `- Truncated features: ${featureCount}`,
+    `- Truncated entity definitions: ${entityCount}`,
+    `- Characters over serialization limit: ${characterCount}`,
+  );
+  if (snapshot.topology.warnings.length) {
+    lines.push("- Warnings:");
+    for (const warning of snapshot.topology.warnings)
+      lines.push(`  - ${warning}`);
+  } else {
+    lines.push("- Warnings: none");
+  }
+
+  if (snapshot.topology.variables !== null) {
+    lines.push("", "## Variables", "```json");
+    lines.push(
+      stringifyContextJson(compactModelDefinition(snapshot.topology.variables)),
+    );
+    lines.push("```");
+  }
+
+  const featureData = snapshot.topology.features.map((evaluation) => ({
+    index: evaluation.index,
+    feature: topologyFeatureDefinition(evaluation),
+    status: evaluation.status,
+    inputRoles: evaluation.inputRoles,
+    affectedInputs: evaluation.affectedInputs,
+    resultingNeighborhood: evaluation.resultingNeighborhood,
+    createdByFeature: evaluation.createdByFeature,
+    unmatchedTopology: evaluation.unmatchedTopology,
+    warnings: evaluation.warnings,
+  }));
+  lines.push("", "## Feature topology", "```json");
+  lines.push(stringifyContextJson(featureData));
+  lines.push("```");
+  if (snapshot.topology.currentSelection) {
+    lines.push("", "## Evaluated current selection", "```json");
+    lines.push(stringifyContextJson(snapshot.topology.currentSelection));
+    lines.push("```");
+  }
+
+  lines.push(
+    "",
+    "---",
+    "The above is evaluated context about my current Onshape document. I will follow up with my specific question — please wait for it.",
+  );
+  return lines.join("\n");
+}
+
+export function formatContextAsMarkdown(
+  snapshot: AiContextSnapshot,
+  { mode = "topology" }: { mode?: ContextCopyMode } = {},
+): string {
+  if (snapshot.scope === "sketch") return formatSketchContext(snapshot, mode);
+  return snapshot.scope === "topology"
+    ? formatTopologyContext(snapshot)
     : formatDocumentContext(snapshot);
 }
 
@@ -869,19 +1145,27 @@ export function buildChatbotUrl(template: string, context: string): string {
   return `${prefix}${encoded}${suffix}`;
 }
 
-export async function copyAiContextToClipboard(opts?: {
-  toolbarType?: OnshapeToolbarMode | null;
-  currentTool?: string | null;
-}): Promise<boolean> {
+export async function copyAiContextToClipboard(
+  opts?: CollectionOptions & { mode?: ContextCopyMode },
+): Promise<boolean> {
+  const mode = opts?.mode ?? "topology";
   const [snapshot, chatbotUrl, openAfterCopy] = await Promise.all([
-    collectAiContext(opts),
+    collectContext(mode, opts),
     getStorageItem("aiChatbotUrl"),
     getStorageItem("aiOpenAfterCopy"),
   ]);
 
-  const markdown = formatContextAsMarkdown(snapshot);
+  const markdown = formatContextAsMarkdown(snapshot, { mode });
   const ok = await writeClipboard(markdown);
-  showToast(ok ? "Context copied for AI" : "Could not copy context");
+  showToast(
+    ok
+      ? mode === "detailed"
+        ? "Detailed info copied for AI"
+        : "Context copied for AI"
+      : mode === "detailed"
+        ? "Could not copy detailed info"
+        : "Could not copy context",
+  );
 
   if (ok && openAfterCopy && chatbotUrl) {
     try {

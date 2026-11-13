@@ -1,6 +1,7 @@
 import {
   STANDARD_VIEWS,
   type ModelData,
+  type TopologyModelData,
   type OnshapeState,
   type Selection,
   type StandardView,
@@ -11,7 +12,7 @@ export const SET_DIMENSIONS_HIDDEN =
   "onshape-mitigator:set-sketch-dimensions-hidden";
 export const EXECUTE_STANDARD_VIEW =
   "onshape-mitigator:execute-standard-view";
-export type ReadKind = "state" | "selections" | "model";
+export type ReadKind = "state" | "selections" | "model" | "topology-model";
 export type ReadRequest = {
   type: typeof REQUEST;
   requestId: string;
@@ -25,7 +26,10 @@ export function isRequest(value: unknown): value is ReadRequest {
     typeof v.requestId === "string" &&
     v.requestId.length > 0 &&
     v.requestId.length <= 100 &&
-    (v.kind === "state" || v.kind === "selections" || v.kind === "model")
+    (v.kind === "state" ||
+      v.kind === "selections" ||
+      v.kind === "model" ||
+      v.kind === "topology-model")
   );
 }
 export function isSetDimensionsHiddenRequest(
@@ -79,5 +83,15 @@ export function isModelData(value: unknown): value is ModelData {
     typeof value === "object" &&
     "features" in value &&
     "variables" in value
+  );
+}
+export function isTopologyModelData(value: unknown): value is TopologyModelData {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    Array.isArray(v.features) &&
+    Array.isArray(v.warnings) &&
+    !!v.truncated &&
+    typeof v.truncated === "object"
   );
 }
