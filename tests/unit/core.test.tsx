@@ -197,6 +197,10 @@ describe("context formatting", () => {
     expect(markdown).toContain("View orientation/preset: Trimetric");
     expect(markdown).toContain("800 × 600 CSS px");
     expect(markdown).toContain("Camera coordinates and projection: unavailable");
+    expect(markdown).toContain("## Detailed JSON translation");
+    expect(markdown).toContain(
+      "The definitions below are translated semantic JSON",
+    );
   });
   it("finds exact sketches in wrapped and flat feature responses", () => {
     const wrapped = {
@@ -347,7 +351,8 @@ describe("context formatting", () => {
     expect(nativeJson).not.toContain('"units"');
     expect(nativeJson).not.toContain('"value": 0');
     expect(nativeJson).not.toContain('"isInteger"');
-    expect(nativeJson).toContain('"expression": "20 mm"');
+    expect(nativeJson).toContain('"expression":"20 mm"');
+    expect(nativeJson).toMatch(/"constraints": \[\n/);
     const definition = JSON.parse(nativeJson);
     expect(definition.message).not.toHaveProperty("parameters");
     expect(definition.message.constraints[0].message.parameters).toEqual([

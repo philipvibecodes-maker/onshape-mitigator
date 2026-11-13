@@ -17,7 +17,7 @@ import {
 import { isDocumentPage } from "./adapter/dom";
 import { matchesBinding } from "./shortcuts";
 import {
-  collectAiContext,
+  collectContext,
   copyAiContextToClipboard,
   formatContextAsMarkdown,
   showToast,
@@ -34,7 +34,7 @@ export function App({ initial }: { initial: SettingsValue }) {
   const [editing, setEditing] = useState(false);
   const [state, setState] = useState<OnshapeState>(EMPTY_STATE);
   const [documentPage, setDocumentPage] = useState(isDocumentPage());
-  const [copying, setCopying] = useState(false);
+  const [copying, setCopying] = useState<"topology" | "detailed" | null>(null);
   const menuOpening = useRef(false);
   const copyInFlight = useRef(false);
   const enabled = settings.extensionEnabled;
@@ -65,12 +65,19 @@ export function App({ initial }: { initial: SettingsValue }) {
           setMenu(false);
           setEditing(true);
           return Promise.resolve({ opened: true });
-        case "onshape-mitigator:document-context":
+        case "onshape-mitigator:document-context": {
           if (!enabled || !isDocumentPage()) return;
-          return collectAiContext({
+          const mode =
+            (message as { mode?: unknown }).mode === "detailed"
+              ? "detailed"
+              : "topology";
+          return collectContext(mode, {
             toolbarType: state.toolbarType,
             currentTool: state.currentTool,
-          }).then((snapshot) => ({ markdown: formatContextAsMarkdown(snapshot) }));
+          }).then((snapshot) => ({
+            markdown: formatContextAsMarkdown(snapshot, { mode }),
+          }));
+        }
       }
     };
     browser.runtime.onMessage.addListener(onMessage);
@@ -118,12 +125,13 @@ export function App({ initial }: { initial: SettingsValue }) {
       showToast("Could not save dimension visibility preference");
     });
   }, [state.toolbarType, settings.sketchDimensionsHidden, update]);
-  const copy = useCallback(async () => {
+  const copy = useCallback(async (mode: "topology" | "detailed" = "topology") => {
     if (copyInFlight.current || !isDocumentPage()) return;
     copyInFlight.current = true;
-    setCopying(true);
+    setCopying(mode);
     try {
       await copyAiContextToClipboard({
+        mode,
         toolbarType: state.toolbarType,
         currentTool: state.currentTool,
       });
@@ -131,7 +139,7 @@ export function App({ initial }: { initial: SettingsValue }) {
       showToast("Could not collect document context");
     } finally {
       copyInFlight.current = false;
-      setCopying(false);
+      setCopying(null);
     }
   }, [state]);
   const toggleMenu = useCallback(async () => {
@@ -238,6 +246,7 @@ export function App({ initial }: { initial: SettingsValue }) {
           shortcut={settings.keyboardShortcuts.openExtensionMenu}
           close={() => setMenu(false)}
           copy={() => void copy()}
+          copyDetailed={() => void copy("detailed")}
           configure={() => setEditing(true)}
           toggleEnabled={() =>
             void saveSetting("extensionEnabled", !enabled).catch(() =>

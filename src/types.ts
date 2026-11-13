@@ -8,6 +8,62 @@ export type ModelData = {
   features: unknown | null;
   variables: unknown | null;
 };
+export type TopologyEntityKind = "FACE" | "EDGE" | "BODY" | "VERTEX" | "UNKNOWN";
+export type TopologyEntity = {
+  id: string;
+  kind: TopologyEntityKind;
+  surfaceDefinition?: unknown;
+  curveDefinition?: unknown;
+  area?: number;
+  length?: number;
+  point?: number[];
+  edges?: string[];
+  faces?: string[];
+  omittedEdgeCount?: number;
+  omittedFaceCount?: number;
+  edgeCount?: number;
+  faceCount?: number;
+};
+export type TopologyGraph = {
+  rollbackBarIndex: number;
+  entities: TopologyEntity[];
+  unresolved: Array<{ id: string; reason: string }>;
+};
+export type TopologyFeatureEvaluation = {
+  index: number;
+  featureId: string | null;
+  name: string | null;
+  featureType: string | null;
+  status: string | null;
+  suppressed: boolean;
+  definition: unknown;
+  inputRoles: Record<string, string[]>;
+  affectedInputs: TopologyGraph;
+  resultingNeighborhood: TopologyGraph;
+  createdByFeature: {
+    faces: string[];
+    edges: string[];
+    unresolved: Array<{ id: string; reason: string }>;
+  };
+  unmatchedTopology: {
+    postOnlyEntityCount: number;
+    preOnlyEntityCount: number;
+    retainedButChangedCount: number;
+  };
+  warnings: string[];
+};
+export type TopologyModelData = {
+  sourceMicroversion: string | null;
+  variables: unknown | null;
+  features: TopologyFeatureEvaluation[];
+  currentSelection: TopologyGraph | null;
+  warnings: string[];
+  truncated: {
+    featureCount: number;
+    entityCount: number;
+    characterCount: number;
+  };
+};
 export type OnshapeState = {
   ready: boolean;
   toolbarType: OnshapeToolbarMode | null;

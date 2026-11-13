@@ -88,6 +88,7 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
       second.getByRole("region", { name: "Onshape Mitigator menu" }),
     ).toHaveCount(0);
     await expect(popup.getByRole("button", { name: "Copy context for AI", exact: true })).toBeEnabled();
+    await expect(popup.getByRole("button", { name: "Copy detailed info", exact: true })).toBeEnabled();
     await popup.keyboard.press("Tab");
     await expect(popup.getByRole("button", { name: "Copy context for AI", exact: true })).toBeFocused();
     await popup.getByRole("button", { name: "Copy context for AI", exact: true }).click();
@@ -103,6 +104,18 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
     await expect(filter).toHaveValue(/## Native data compaction/);
     await expect(filter).not.toHaveValue(/DO NOT COPY Extrude/);
     await expect(filter).not.toHaveValue(/DO_NOT_COPY_VARIABLE/);
+    await filter.fill("");
+    popup = await icon(first);
+    await popup.getByRole("button", { name: "Copy detailed info", exact: true }).click();
+    await expect(popup.getByRole("status")).toHaveText("Detailed info copied for AI");
+    await popup.getByRole("button", { name: "Hide menu", exact: true }).click();
+    await expect.poll(() => popup.isClosed()).toBe(true);
+    await filter.focus();
+    await filter.press("Control+v");
+    await expect(filter).toHaveValue(/## Detailed JSON translation/);
+    await expect(filter).toHaveValue(/"localFirst":"entity-1"/);
+    await expect(filter).not.toHaveValue(/"typeName"/);
+    await expect(filter).not.toHaveValue(/"message"/);
     await filter.fill("");
     popup = await icon(first);
     await expect(popup.getByRole("region", { name: "Onshape Mitigator menu" })).toHaveCSS("font-size", "14px");
@@ -242,6 +255,7 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
     await outside.goto("about:blank");
     popup = await icon(outside);
     await expect(popup.getByRole("button", { name: "Copy context for AI", exact: true })).toBeDisabled();
+    await expect(popup.getByRole("button", { name: "Copy detailed info", exact: true })).toBeDisabled();
     await expect(popup.getByRole("button", { name: "Settings", exact: true })).toBeDisabled();
     await expect(popup.getByRole("status")).toContainText("Onshape tab");
     await popup.getByRole("button", { name: "Hide menu", exact: true }).click();
