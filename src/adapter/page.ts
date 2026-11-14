@@ -7,6 +7,7 @@ import {
 } from "./protocol";
 import type {
   ModelData,
+  ActiveSketchData,
   OnshapeState,
   OnshapeToolbarMode,
   Selection,
@@ -33,7 +34,12 @@ const VIEW_COMMANDS: Record<StandardView, string> = {
 };
 declare global {
   interface Window {
-    angular?: { element(node: Document): { injector(): Injector | undefined } };
+    angular?: {
+      element(node: Document | Element): {
+        injector?: () => Injector | undefined;
+        data?: (key: string) => unknown;
+      };
+    };
     __mitigatorAdapter?: boolean;
     btTs?: {
       graphics?: {
@@ -47,7 +53,7 @@ declare global {
 }
 export function getInjector(): Injector | undefined {
   try {
-    return window.angular?.element(document).injector();
+    return window.angular?.element(document).injector?.();
   } catch {
     return undefined;
   }
@@ -196,6 +202,64 @@ async function readModel(): Promise<ModelData> {
   ]);
   return { features, variables };
 }
+function serializeSketchMessage(
+  value: unknown,
+  seen = new WeakSet<object>(),
+): unknown {
+  if (Array.isArray(value))
+    return value.map((item) => serializeSketchMessage(item, seen));
+  if (value === null || typeof value !== "object") return value;
+  if (seen.has(value)) throw new Error("Cyclic sketch message");
+  seen.add(value);
+  const record = value as Record<string, unknown> & {
+    getMessageName?: () => string;
+  };
+  const fields = Object.fromEntries(
+    Object.entries(record)
+      .filter(
+        ([key, field]) =>
+          key !== "_serializedByteLength" &&
+          key !== "sourceParseTreeNodes" &&
+          field !== undefined &&
+          typeof field !== "function",
+      )
+      .map(([key, field]) => [key, serializeSketchMessage(field, seen)]),
+  );
+  seen.delete(value);
+  const messageName = record.getMessageName?.();
+  const typeName = messageName?.match(/(?:^|\.)G(BT[A-Za-z0-9]+)$/)?.[1];
+  return typeName ? { typeName, message: fields } : fields;
+}
+function readActiveSketch(): ActiveSketchData {
+  try {
+    const dialog = document.querySelector(
+      '#feature-dialog[feature-type="newSketch"]',
+    );
+    const parameterList = dialog?.querySelector("os-parameter-list-view");
+    if (!parameterList) return null;
+    const controller = window.angular?.element(parameterList).data?.(
+      "$osParameterListViewController",
+    ) as
+      | { featureModel?: { featureId?: unknown; getFeature?: () => unknown } }
+      | undefined;
+    const featureId = controller?.featureModel?.featureId;
+    if (typeof featureId !== "string" || !featureId) return null;
+    const feature = controller?.featureModel?.getFeature?.();
+    if (!feature || typeof feature !== "object") return null;
+    const messageName = (
+      feature as { getMessageName?: () => string }
+    ).getMessageName?.();
+    if (messageName !== "bsedit.GBTMSketch") return null;
+    const definition = serializeSketchMessage(feature);
+    if (!definition || typeof definition !== "object") return null;
+    const wrapped = definition as { message?: { featureId?: unknown } };
+    if (wrapped.message?.featureId !== featureId) return null;
+    if (JSON.stringify(definition).length > 2_000_000) return null;
+    return { featureId, definition };
+  } catch {
+    return null;
+  }
+}
 let hookedViewer: DimensionViewer | null = null;
 let originalAddUIElement: DimensionViewer["addUIElement"];
 const originalDimensionShows = new Map<DimensionElement, () => void>();
@@ -269,6 +333,13 @@ export function handleRead(event: MessageEvent): void {
         { type: RESPONSE, requestId, kind, data },
         location.origin,
       ),
+    );
+    return;
+  }
+  if (kind === "active-sketch") {
+    window.postMessage(
+      { type: RESPONSE, requestId, kind, data: readActiveSketch() },
+      location.origin,
     );
     return;
   }

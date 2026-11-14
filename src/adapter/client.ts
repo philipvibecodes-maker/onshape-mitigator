@@ -5,12 +5,14 @@ import {
   EXECUTE_STANDARD_VIEW,
   isSelections,
   isModelData,
+  isActiveSketchData,
   isTopologyModelData,
   isState,
   type ReadKind,
 } from "./protocol";
 import type {
   ModelData,
+  ActiveSketchData,
   TopologyModelData,
   OnshapeState,
   Selection,
@@ -31,17 +33,26 @@ export function readPage(
 ): Promise<Selection[]>;
 export function readPage(kind: "model", timeoutMs?: number): Promise<ModelData>;
 export function readPage(
+  kind: "active-sketch",
+  timeoutMs?: number,
+): Promise<ActiveSketchData>;
+export function readPage(
   kind: "topology-model",
   timeoutMs?: number,
 ): Promise<TopologyModelData>;
 export function readPage(
   kind: ReadKind,
   timeoutMs = 1500,
-): Promise<OnshapeState | Selection[] | ModelData | TopologyModelData> {
+): Promise<OnshapeState | Selection[] | ModelData | TopologyModelData | ActiveSketchData> {
   const requestId = crypto.randomUUID();
   return new Promise((resolve) => {
     const finish = (
-      value: OnshapeState | Selection[] | ModelData | TopologyModelData,
+      value:
+        | OnshapeState
+        | Selection[]
+        | ModelData
+        | TopologyModelData
+        | ActiveSketchData,
     ) => {
       clearTimeout(timer);
       window.removeEventListener("message", onMessage);
@@ -64,6 +75,8 @@ export function readPage(
             ? isSelections(v.data)
             : kind === "model"
               ? isModelData(v.data)
+              : kind === "active-sketch"
+                ? isActiveSketchData(v.data)
               : isTopologyModelData(v.data);
       if (valid)
         finish(v.data);
@@ -77,6 +90,8 @@ export function readPage(
               ? []
               : kind === "model"
                 ? { features: null, variables: null }
+                : kind === "active-sketch"
+                  ? null
                 : {
                     sourceMicroversion: null,
                     variables: null,
