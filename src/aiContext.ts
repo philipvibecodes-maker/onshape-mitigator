@@ -1160,11 +1160,11 @@ export async function copyAiContextToClipboard(
   showToast(
     ok
       ? mode === "detailed"
-        ? "Detailed info copied for AI"
-        : "Context copied for AI"
+        ? "Native feature data copied"
+        : "Topology context copied"
       : mode === "detailed"
-        ? "Could not copy detailed info"
-        : "Could not copy context",
+        ? "Could not copy native feature data"
+        : "Could not copy topology context",
   );
 
   if (ok && openAfterCopy && chatbotUrl) {
@@ -1173,7 +1173,11 @@ export async function copyAiContextToClipboard(
       if (url.protocol === "https:" || url.protocol === "http:")
         window.open(url.href, "_blank", "noopener,noreferrer");
     } catch {
-      showToast("Context copied; chatbot URL is invalid");
+      showToast(
+        mode === "detailed"
+          ? "Native feature data copied; chatbot URL is invalid"
+          : "Topology context copied; chatbot URL is invalid",
+      );
     }
   }
 

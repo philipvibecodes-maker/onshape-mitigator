@@ -47,8 +47,8 @@ function Popup({ initial }: { initial: Settings }) {
       if (!(await writeClipboard(reply.markdown))) throw new Error();
       setStatus(
         mode === "detailed"
-          ? "Detailed info copied for AI"
-          : "Context copied for AI",
+          ? "Native feature data copied"
+          : "Topology context copied",
       );
       if (settings.aiOpenAfterCopy && settings.aiChatbotUrl) {
         const url = new URL(buildChatbotUrl(settings.aiChatbotUrl, reply.markdown));
@@ -58,8 +58,8 @@ function Popup({ initial }: { initial: Settings }) {
     } catch {
       setStatus(
         mode === "detailed"
-          ? "Could not copy detailed info. Reload Onshape and try again."
-          : "Could not copy document context. Reload Onshape and try again.",
+          ? "Could not copy native feature data. Reload Onshape and try again."
+          : "Could not copy topology context. Reload Onshape and try again.",
       );
     } finally {
       setCopying(null);

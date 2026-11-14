@@ -59,13 +59,13 @@ export function Menu({
             disabled={!canCopy || copying !== null}
             onClick={copy}
           >
-            {copying === "topology" ? "Copying context…" : "Copy context for AI"}
+            {copying === "topology" ? "Copying topology context…" : "Copy topology context"}
           </button>
           <button
             disabled={!canCopy || copying !== null}
             onClick={copyDetailed}
           >
-            {copying === "detailed" ? "Copying detailed info…" : "Copy detailed info"}
+            {copying === "detailed" ? "Copying native feature data…" : "Copy native feature data"}
           </button>
           <button disabled={!canConfigure} onClick={configure}>Settings</button>
         </>

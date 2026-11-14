@@ -350,7 +350,7 @@ test("copy shares sketch context only on request and honors chatbot preferences"
   expect(await page.evaluate(() => (window as any).selectionReads)).toBe(0);
   await menu(page);
   await page
-    .getByRole("button", { name: "Copy context for AI", exact: true })
+    .getByRole("button", { name: "Copy topology context", exact: true })
     .click();
   await expect
     .poll(() => page.evaluate(() => (window as any).copied.length))
@@ -392,7 +392,7 @@ test("copy shares sketch context only on request and honors chatbot preferences"
     .uncheck();
   await page.getByRole("button", { name: "Close", exact: true }).click();
   await page
-    .getByRole("button", { name: "Copy context for AI", exact: true })
+    .getByRole("button", { name: "Copy topology context", exact: true })
     .click();
   await expect
     .poll(() => page.evaluate(() => (window as any).copied.length))
@@ -406,7 +406,7 @@ test("document topology copies describe feature inputs and outputs without dangl
   await openFixture(page, "Part Studio");
   await menu(page);
   await page
-    .getByRole("button", { name: "Copy context for AI", exact: true })
+    .getByRole("button", { name: "Copy topology context", exact: true })
     .click();
   await expect
     .poll(() => page.evaluate(() => (window as any).copied.length))
@@ -439,7 +439,7 @@ test("detailed document copies translate native wrappers into semantic JSON", as
   await openFixture(page, "Part Studio");
   await menu(page);
   await page
-    .getByRole("button", { name: "Copy detailed info", exact: true })
+    .getByRole("button", { name: "Copy native feature data", exact: true })
     .click();
   await expect
     .poll(() => page.evaluate(() => (window as any).copied.length))
@@ -488,7 +488,7 @@ test("detailed document copies translate native wrappers into semantic JSON", as
 test("detailed sketch copying translates constraints and ordinary copying keeps its schema", async ({ page }) => {
   await openFixture(page);
   await menu(page);
-  await page.getByRole("button", { name: "Copy detailed info", exact: true }).click();
+  await page.getByRole("button", { name: "Copy native feature data", exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as any).copied.length)).toBe(1);
   const detailed = await page.evaluate(() => (window as any).copied[0]);
   const json = detailed.match(/```json\n([\s\S]*?)\n```/)?.[1] ?? "null";
@@ -501,7 +501,7 @@ test("detailed sketch copying translates constraints and ordinary copying keeps 
   expect(JSON.parse(json)).not.toHaveProperty("parameters");
   expect(json).not.toContain('"typeName"');
   expect(json).not.toContain('"message"');
-  await page.getByRole("button", { name: "Copy context for AI", exact: true }).click();
+  await page.getByRole("button", { name: "Copy topology context", exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as any).copied.length)).toBe(2);
   const ordinary = await page.evaluate(() => (window as any).copied[1]);
   expect(ordinary).toContain("## Native data compaction");
@@ -520,7 +520,7 @@ test("sketch copying fails closed when the active row cannot be matched", async 
   });
   await menu(page);
   await page
-    .getByRole("button", { name: "Copy context for AI", exact: true })
+    .getByRole("button", { name: "Copy topology context", exact: true })
     .click();
   await expect
     .poll(() => page.evaluate(() => (window as any).copied.length))
@@ -550,10 +550,10 @@ test("clipboard failure reports error and does not open chatbot", async ({
   });
   await menu(page);
   await page
-    .getByRole("button", { name: "Copy context for AI", exact: true })
+    .getByRole("button", { name: "Copy topology context", exact: true })
     .click();
   await expect(
-    page.getByText("Could not copy context", { exact: true }),
+    page.getByText("Could not copy topology context", { exact: true }),
   ).toBeVisible();
   expect(await page.evaluate(() => (window as any).opened.length)).toBe(0);
 });
@@ -569,7 +569,7 @@ test("DOM features and partial context survive missing services and document nav
   await expect(page.locator("#mitigator-tooltip")).toHaveText("Extrude");
   await menu(page);
   await page
-    .getByRole("button", { name: "Copy context for AI", exact: true })
+    .getByRole("button", { name: "Copy topology context", exact: true })
     .click();
   await expect
     .poll(() => page.evaluate(() => (window as any).copied.length))
@@ -581,7 +581,7 @@ test("DOM features and partial context survive missing services and document nav
     history.pushState({}, "", "/documents/other/v/version/e/assembly"),
   );
   await page
-    .getByRole("button", { name: "Copy context for AI", exact: true })
+    .getByRole("button", { name: "Copy topology context", exact: true })
     .click();
   await expect
     .poll(() => page.evaluate(() => (window as any).copied.length))
@@ -591,7 +591,7 @@ test("DOM features and partial context survive missing services and document nav
   );
   await page.evaluate(() => history.pushState({}, "", "/home"));
   await expect(
-    page.getByRole("button", { name: "Copy context for AI", exact: true }),
+    page.getByRole("button", { name: "Copy topology context", exact: true }),
   ).toBeDisabled();
   await expect(page.locator("#mitigator-tooltip")).toHaveCount(0);
 });
