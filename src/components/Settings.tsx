@@ -218,8 +218,8 @@ export function Settings({
           Open chatbot after copying
         </label>
         <small>
-          Context is collected only when you choose Copy context, Copy detailed
-          info, or the context shortcut. Opening a chatbot with {"{context}"}
+          Context is collected only when you choose Copy topology context, Copy native feature
+          data, or the context shortcut. Opening a chatbot with {"{context}"}
           shares that context with the configured website.
         </small>
         {error && (

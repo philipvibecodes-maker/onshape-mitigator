@@ -5,7 +5,7 @@ A small standalone Chrome and Edge extension that makes Onshape easier to learn 
 - **Instant tooltips:** hovering an icon in Onshape's `s` shortcut menu immediately shows its command name.
 - **Collapsible sketch panel:** collapse sketch options while leaving native finish/cancel controls available. The preference persists.
 - **Configurable shortcuts:** includes toggling the variables table and spatial Alt+numpad view mappings.
-- **AI-ready document context:** copy compact, rollback-scoped Part Studio feature/topology data, or use **Copy detailed info** for compacted native feature and variable definitions. Optionally open a configured chatbot.
+- **AI-ready document context:** copy compact, rollback-scoped Part Studio feature/topology data, or use **Copy native feature data** for compacted native feature and variable definitions. Optionally open a configured chatbot.
 
 ## Install in Chrome or Edge
 
@@ -18,7 +18,7 @@ pnpm run build
 
 Open `chrome://extensions` or `edge://extensions`, enable Developer mode, choose **Load unpacked**, and select `dist/`. Reload existing Onshape tabs after installation or updating. This version is distributed unpacked; no store publishing is configured.
 
-Click the browser extension icon to open a popup anchored to that icon. `Alt+M` opens the same popup when the toolbar is available. In browser or page fullscreen, the shortcut toggles a matching menu at the upper-right edge of the page; this also serves as a fallback if the browser cannot open its popup. Both menus provide **Copy context for AI**, **Copy detailed info**, **Settings**, and **Disable extension**. Settings opens in the Onshape tab. When disabled, the icon or menu shortcut still exposes **Enable extension**. Changing enabled state reloads open Onshape tabs.
+Click the browser extension icon to open a popup anchored to that icon. `Alt+M` opens the same popup when the toolbar is available. In browser or page fullscreen, the shortcut toggles a matching menu at the upper-right edge of the page; this also serves as a fallback if the browser cannot open its popup. Both menus provide **Copy topology context**, **Copy native feature data**, **Settings**, and **Disable extension**. Settings opens in the Onshape tab. When disabled, the icon or menu shortcut still exposes **Enable extension**. Changing enabled state reloads open Onshape tabs.
 
 The extension runs on `https://*.onshape.com/*`; modeling helpers activate on document pages. It leaves Onshape's theme, canvas, native shortcuts, and normal editing controls alone.
 
@@ -29,7 +29,7 @@ The extension runs on `https://*.onshape.com/*`; modeling helpers activate on do
 | `Alt+M`       | Toggle extension menu                    |
 | `Alt+V`       | Toggle variables table                   |
 | `Alt+Shift+T` | Collapse/expand sketch options           |
-| `Alt+Shift+C` | Copy context and optionally open chatbot |
+| `Alt+Shift+C` | Copy topology context and optionally open chatbot |
 | Unbound       | Open settings                            |
 
 In Settings, click a binding and press a new combination. Backspace clears; Escape cancels recording. Duplicate assignments are rejected. **Save settings** commits changes; Cancel discards them. Shortcuts do not fire while typing in Onshape fields or editing extension settings. Some browser/OS-reserved combinations cannot be overridden.
@@ -38,7 +38,7 @@ Alt+numpad view mappings are configured separately by physical key, so they work
 
 ## Context sharing
 
-Collection happens only after a copy action. **Copy context for AI** evaluates the faces, edges, bodies, and vertices consumed or changed by Part Studio features. The output keeps Onshape's analytic classifications, feature parameters, query roles, rollback boundaries, and explicit unresolved/truncation notices; it does not invent semantic face names. While editing a sketch, copying remains scoped to that sketch. **Copy detailed info** skips FeatureScript evaluation and copies the compacted native definitions instead.
+Collection happens only after a copy action. **Copy topology context** evaluates the faces, edges, bodies, and vertices consumed or changed by Part Studio features. The output keeps Onshape's analytic classifications, feature parameters, query roles, rollback boundaries, and explicit unresolved/truncation notices; it does not invent semantic face names. While editing a sketch, copying remains scoped to that sketch. **Copy native feature data** skips FeatureScript evaluation and copies the compacted native definitions instead.
 
 The clipboard receives the full Markdown snapshot. ChatGPT is the default destination (`https://chatgpt.com/?q={context}`), with automatic opening enabled. You can change the HTTP/HTTPS URL or turn opening off. A URL containing `{context}` shares a URL-encoded snapshot with that website; URLs are capped at 6,000 characters by shortening context. Without the placeholder, paste the clipboard into the chatbot yourself.
 

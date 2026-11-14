@@ -12,7 +12,7 @@ export const ACTIONS: Record<ActionId, string> = {
   openVariablesTable: "Toggle variables table",
   toggleSketchToolbar: "Toggle sketch panel",
   toggleSketchDimensions: "Toggle sketch dimensions",
-  copyAiContext: "Copy context for AI",
+  copyAiContext: "Copy topology context",
   openSettings: "Open settings",
 };
 export const DEFAULT_NUMPAD_VIEW_MAPPINGS: NumpadViewMappings = {

@@ -87,12 +87,12 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
     await expect(
       second.getByRole("region", { name: "Onshape Mitigator menu" }),
     ).toHaveCount(0);
-    await expect(popup.getByRole("button", { name: "Copy context for AI", exact: true })).toBeEnabled();
-    await expect(popup.getByRole("button", { name: "Copy detailed info", exact: true })).toBeEnabled();
+    await expect(popup.getByRole("button", { name: "Copy topology context", exact: true })).toBeEnabled();
+    await expect(popup.getByRole("button", { name: "Copy native feature data", exact: true })).toBeEnabled();
     await popup.keyboard.press("Tab");
-    await expect(popup.getByRole("button", { name: "Copy context for AI", exact: true })).toBeFocused();
-    await popup.getByRole("button", { name: "Copy context for AI", exact: true }).click();
-    await expect(popup.getByRole("status")).toHaveText("Context copied for AI");
+    await expect(popup.getByRole("button", { name: "Copy topology context", exact: true })).toBeFocused();
+    await popup.getByRole("button", { name: "Copy topology context", exact: true }).click();
+    await expect(popup.getByRole("status")).toHaveText("Topology context copied");
     await popup.getByRole("button", { name: "Hide menu", exact: true }).click();
     await expect.poll(() => popup.isClosed()).toBe(true);
     const filter = first.getByRole("textbox", { name: "Native filter", exact: true });
@@ -106,8 +106,8 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
     await expect(filter).not.toHaveValue(/DO_NOT_COPY_VARIABLE/);
     await filter.fill("");
     popup = await icon(first);
-    await popup.getByRole("button", { name: "Copy detailed info", exact: true }).click();
-    await expect(popup.getByRole("status")).toHaveText("Detailed info copied for AI");
+    await popup.getByRole("button", { name: "Copy native feature data", exact: true }).click();
+    await expect(popup.getByRole("status")).toHaveText("Native feature data copied");
     await popup.getByRole("button", { name: "Hide menu", exact: true }).click();
     await expect.poll(() => popup.isClosed()).toBe(true);
     await filter.focus();
@@ -212,7 +212,7 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
       popup.getByRole("button", { name: "Enable extension", exact: true }),
     ).toBeVisible();
     await expect(
-      popup.getByRole("button", { name: "Copy context for AI", exact: true }),
+      popup.getByRole("button", { name: "Copy topology context", exact: true }),
     ).toHaveCount(0);
     await third.reload();
     popup = await icon(third);
@@ -254,8 +254,8 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
     const outside = await context.newPage();
     await outside.goto("about:blank");
     popup = await icon(outside);
-    await expect(popup.getByRole("button", { name: "Copy context for AI", exact: true })).toBeDisabled();
-    await expect(popup.getByRole("button", { name: "Copy detailed info", exact: true })).toBeDisabled();
+    await expect(popup.getByRole("button", { name: "Copy topology context", exact: true })).toBeDisabled();
+    await expect(popup.getByRole("button", { name: "Copy native feature data", exact: true })).toBeDisabled();
     await expect(popup.getByRole("button", { name: "Settings", exact: true })).toBeDisabled();
     await expect(popup.getByRole("status")).toContainText("Onshape tab");
     await popup.getByRole("button", { name: "Hide menu", exact: true }).click();
