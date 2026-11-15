@@ -251,6 +251,22 @@ export async function openDocument(page) {
 export async function launchOnshapeChromium({ headed = false } = {}) {
   setDesktopEnvironmentDefaults();
   const app = flatpakApp();
+  const manifestPath = path.join(extensionPath, "manifest.json");
+  if (!existsSync(manifestPath))
+    throw new Error(`Built extension manifest is missing: ${manifestPath}. Run pnpm run build.`);
+  if (app) {
+    const visibility = spawnSync(
+      "flatpak",
+      ["run", "--command=sh", app, "-c", 'test -f "$1" && test -r "$1"', "sh", manifestPath],
+      { stdio: "ignore", timeout: 10000 },
+    );
+    if (visibility.status === 1)
+      throw new Error(
+        `Flatpak ${app} cannot read the built extension manifest: ${manifestPath}. Use a home-directory worktree or set CHROME_PATH to a non-Flatpak Chromium executable.`,
+      );
+    if (visibility.status !== 0)
+      throw new Error(`Could not check extension manifest visibility in Flatpak ${app}. Check that the selected Flatpak app can run.`);
+  }
   const executablePath = browserExecutable(app);
   const profileDir = process.env.ONSHAPE_PROFILE_DIR || defaultProfileDir;
   if (!existsSync(profileDir))
