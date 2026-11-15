@@ -1,6 +1,7 @@
 import {
   STANDARD_VIEWS,
   type ModelData,
+  type ActiveSketchData,
   type TopologyModelData,
   type OnshapeState,
   type Selection,
@@ -12,7 +13,12 @@ export const SET_DIMENSIONS_HIDDEN =
   "onshape-mitigator:set-sketch-dimensions-hidden";
 export const EXECUTE_STANDARD_VIEW =
   "onshape-mitigator:execute-standard-view";
-export type ReadKind = "state" | "selections" | "model" | "topology-model";
+export type ReadKind =
+  | "state"
+  | "selections"
+  | "model"
+  | "topology-model"
+  | "active-sketch";
 export type ReadRequest = {
   type: typeof REQUEST;
   requestId: string;
@@ -29,7 +35,8 @@ export function isRequest(value: unknown): value is ReadRequest {
     (v.kind === "state" ||
       v.kind === "selections" ||
       v.kind === "model" ||
-      v.kind === "topology-model")
+      v.kind === "topology-model" ||
+      v.kind === "active-sketch")
   );
 }
 export function isSetDimensionsHiddenRequest(
@@ -84,6 +91,23 @@ export function isModelData(value: unknown): value is ModelData {
     "features" in value &&
     "variables" in value
   );
+}
+export function isActiveSketchData(value: unknown): value is ActiveSketchData {
+  if (value === null) return true;
+  if (!value || typeof value !== "object") return false;
+  const sketch = value as Record<string, unknown>;
+  if (typeof sketch.featureId !== "string" || !sketch.featureId)
+    return false;
+  const definition = sketch.definition;
+  if (!definition || typeof definition !== "object") return false;
+  const wrapped = definition as Record<string, unknown>;
+  if (
+    wrapped.typeName !== "BTMSketch" ||
+    !wrapped.message ||
+    typeof wrapped.message !== "object"
+  ) return false;
+  return (wrapped.message as Record<string, unknown>).featureId ===
+    sketch.featureId;
 }
 export function isTopologyModelData(value: unknown): value is TopologyModelData {
   if (!value || typeof value !== "object") return false;

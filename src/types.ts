@@ -8,6 +8,9 @@ export type ModelData = {
   features: unknown | null;
   variables: unknown | null;
 };
+export type ActiveSketchData =
+  | { featureId: string; definition: unknown }
+  | null;
 export type TopologyEntityKind = "FACE" | "EDGE" | "BODY" | "VERTEX" | "UNKNOWN";
 export type TopologyEntity = {
   id: string;

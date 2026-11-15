@@ -660,12 +660,11 @@ export async function collectAiContext(
   const sketchIdentity = getActiveSketchIdentity();
   const scope = contextScope(opts);
   const source = collectSource(opts);
-  const [selections, model] = await Promise.all([
-    getCurrentSelections().catch(() => []),
-    readPage("model").catch(() => ({ features: null, variables: null })),
-  ]);
-
   if (scope === "sketch") {
+    const [selections, activeSketch] = await Promise.all([
+      getCurrentSelections().catch(() => []),
+      readPage("active-sketch").catch(() => null),
+    ]);
     return {
       ...source,
       scope,
@@ -675,12 +674,18 @@ export async function collectAiContext(
       sketch: {
         featureId: sketchIdentity?.featureId ?? null,
         name: sketchIdentity?.name ?? null,
-        definition: sketchIdentity
-          ? findSketchDefinition(model.features, sketchIdentity.featureId)
-          : null,
+        definition:
+          sketchIdentity && activeSketch?.featureId === sketchIdentity.featureId
+            ? activeSketch.definition
+            : null,
       },
     };
   }
+
+  const [selections, model] = await Promise.all([
+    getCurrentSelections().catch(() => []),
+    readPage("model").catch(() => ({ features: null, variables: null })),
+  ]);
 
   return {
     ...source,

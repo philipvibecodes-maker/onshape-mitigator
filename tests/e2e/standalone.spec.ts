@@ -509,6 +509,49 @@ test("detailed sketch copying translates constraints and ordinary copying keeps 
   expect(await page.evaluate(() => (window as any).featureScriptReads)).toBe(0);
 });
 
+test("sketch copying uses geometry from the open editor", async ({ page }) => {
+  await openFixture(page);
+  await page.evaluate(() => {
+    (window as any).fixtureLiveSketch.entities = [{
+      entityId: "fresh-entity",
+      getMessageName: () => "bsedit.GBTMSketchCurveSegment",
+    }];
+    (window as any).fixtureLiveSketch.constraints = [];
+  });
+
+  await menu(page);
+  await page.getByRole("button", { name: "Copy topology context", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).copied.length)).toBe(1);
+  const copied = await page.evaluate(() => (window as any).copied[0]);
+  const json = copied.match(/```json\n([\s\S]*?)\n```/)?.[1] ?? "null";
+  expect(json).toContain("fresh-entity");
+  expect(json).not.toContain("entity-1");
+
+  await page.evaluate(() => {
+    (window as any).fixtureLiveSketch.entities = [{
+      entityId: "newest-entity",
+      getMessageName: () => "bsedit.GBTMSketchCurveSegment",
+    }];
+  });
+  await page.getByRole("button", { name: "Copy topology context", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).copied.length)).toBe(2);
+  const updated = await page.evaluate(() => (window as any).copied[1]);
+  const updatedJson = updated.match(/```json\n([\s\S]*?)\n```/)?.[1] ?? "null";
+  expect(updatedJson).toContain("newest-entity");
+  expect(updatedJson).not.toContain("fresh-entity");
+});
+
+test("sketch copying reports unavailable when the live editor cannot be read", async ({ page }) => {
+  await openFixture(page);
+  await page.locator("#feature-dialog os-parameter-list-view").evaluate((node) => node.remove());
+  await menu(page);
+  await page.getByRole("button", { name: "Copy topology context", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).copied.length)).toBe(1);
+  const copied = await page.evaluate(() => (window as any).copied[0]);
+  expect(copied).toContain("Active sketch definition unavailable.");
+  expect(copied).not.toContain("COINCIDENT");
+});
+
 test("sketch copying fails closed when the active row cannot be matched", async ({
   page,
 }) => {
