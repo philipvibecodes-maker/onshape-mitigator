@@ -1,6 +1,6 @@
 import { getStorageItem } from "./storage";
 import { readPage } from "./adapter/client";
-import { translateDetailedDefinition } from "./detailedDefinition";
+import { translateDetailedDefinition, type DetailedJson } from "./detailedDefinition";
 import type {
   OnshapeToolbarMode,
   Selection as ClassifiedOnshapeSelection,
@@ -952,27 +952,51 @@ function formatDocumentContext(snapshot: DocumentContextSnapshot): string {
 
 function topologyFeatureDefinition(
   evaluation: TopologyFeatureEvaluation,
-): unknown {
+): DetailedJson {
   const feature = unwrapFeature(evaluation.definition);
   if (!feature) return null;
-  const parameters = Array.isArray(feature.parameters)
-    ? feature.parameters.filter((parameter) => {
-        if (!parameter || typeof parameter !== "object") return false;
-        return (parameter as { typeName?: unknown }).typeName !==
-          "BTMParameterQueryList";
-      })
-    : [];
-  const compacted = compactModelDefinition({
-    typeName: "BTMFeature",
-    message: {
-      featureId: evaluation.featureId,
-      name: evaluation.name,
-      featureType: evaluation.featureType,
-      suppressed: evaluation.suppressed,
-      parameters,
-    },
-  });
-  return unwrapFeature(compacted);
+  const translated = translateDetailedDefinition(
+    compactModelDefinition({
+      typeName: "BTMFeature",
+      message: {
+        featureId: evaluation.featureId,
+        name: evaluation.name,
+        featureType: evaluation.featureType,
+        suppressed: evaluation.suppressed,
+        parameters: feature.parameters,
+      },
+    }),
+  );
+  if (!translated || typeof translated !== "object" || Array.isArray(translated))
+    return translated;
+  const parameters = translated.parameters;
+  if (!parameters || typeof parameters !== "object" || Array.isArray(parameters))
+    return translated;
+  const retainedParameters = Object.fromEntries(
+    Object.entries(parameters).filter(([id, value]) => {
+      if (
+        !value || typeof value !== "object" || Array.isArray(value) ||
+        Object.keys(value).length !== 1 || !Object.hasOwn(value, "QueryList")
+      )
+        return true;
+      const ids = typeof value.QueryList === "string"
+        ? [value.QueryList]
+        : value.QueryList;
+      if (
+        !Array.isArray(ids) || ids.length === 0 ||
+        !ids.every((entry) => typeof entry === "string") ||
+        new Set(ids).size !== ids.length || !Object.hasOwn(evaluation.inputRoles, id)
+      )
+        return true;
+      const role = evaluation.inputRoles[id];
+      return role.length !== ids.length ||
+        ids.some((entry, index) => entry !== role[index]);
+    }),
+  );
+  const { parameters: _parameters, ...definition } = translated;
+  return Object.keys(retainedParameters).length
+    ? { ...definition, parameters: retainedParameters }
+    : definition;
 }
 
 function formatTopologyContext(snapshot: TopologyContextSnapshot): string {
@@ -984,6 +1008,7 @@ function formatTopologyContext(snapshot: TopologyContextSnapshot): string {
     ...formatSource(snapshot, "Document"),
     "",
     "## Representation",
+    "- Native feature parameters and variables use semantic JSON: safe BTM transport wrappers are removed, while ambiguous or unknown forms retain type identity.",
     "- This is rollback-scoped evaluated topology, not a semantic interpretation of the model.",
     "- `surfaceDefinition.surfaceType` and `curveDefinition.curveType` are Onshape evaluator classifications. For example, `CYLINDER` describes an underlying face surface and does not mean the overall model is a cylinder.",
     "- Transient IDs are meaningful only within the graph's `rollbackBarIndex`.",
@@ -1035,7 +1060,9 @@ function formatTopologyContext(snapshot: TopologyContextSnapshot): string {
   if (snapshot.topology.variables !== null) {
     lines.push("", "## Variables", "```json");
     lines.push(
-      stringifyContextJson(compactModelDefinition(snapshot.topology.variables)),
+      stringifyContextJson(
+        translateDetailedDefinition(compactModelDefinition(snapshot.topology.variables)),
+      ),
     );
     lines.push("```");
   }

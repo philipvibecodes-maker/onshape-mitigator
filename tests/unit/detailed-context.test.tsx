@@ -162,7 +162,7 @@ describe("detailed context semantic JSON", () => {
     });
   });
 
-  it("does not mutate frozen extrusion inputs or change ordinary sketch and topology representations", () => {
+  it("does not mutate frozen extrusion inputs or change ordinary sketch representations", () => {
     const definition = {
       typeName: "BTMFeature",
       message: { featureId: "extrude-1", featureType: "extrude", parameters: [
@@ -200,6 +200,6 @@ describe("detailed context semantic JSON", () => {
       scope: "topology",
       topology: { sourceMicroversion: null, variables: parameter("Quantity", "height", { expression: "10 mm" }), features: [], currentSelection: null, warnings: [], truncated: { featureCount: 0, entityCount: 0, characterCount: 0 } },
     };
-    expect(jsonFrom(formatContextAsMarkdown(topology, { mode: "detailed" }))).toEqual(parameter("Quantity", "height", { expression: "10 mm" }));
+    expect(jsonFrom(formatContextAsMarkdown(topology, { mode: "detailed" }))).toEqual({ kind: "Quantity", parameterId: "height", expression: "10 mm" });
   });
 });
