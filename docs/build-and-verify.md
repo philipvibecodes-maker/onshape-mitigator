@@ -38,3 +38,9 @@ rejects a profile or port already in use and cleans up a kept-open browser on
 Ctrl+C. Run `pnpm run test:live -- --help` for profile, executable, Flatpak, port,
 and document-selection overrides. `ONSHAPE_DOCUMENT_NAME` selects a named document;
 without either document selector, the first workspace document is used.
+
+If a worktree is under host `/tmp`, Flatpak Chromium's private `/tmp` mount can hide
+`dist/manifest.json` even after a successful build. Chromium then reports a missing
+or unreadable manifest. The helper checks the manifest inside the selected Flatpak
+before launch. Use a home-directory worktree or set `CHROME_PATH` to a non-Flatpak
+Chromium executable.

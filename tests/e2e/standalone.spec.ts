@@ -430,6 +430,18 @@ test("document topology copies describe feature inputs and outputs without dangl
   expect(copied).toContain('"unmatchedTopology"');
   expect(copied).not.toContain('"beforeFeature"');
   expect(copied).not.toContain('"afterFeature"');
+  const jsonBlocks = Array.from(
+    copied.matchAll(/```json\n([\s\S]*?)\n```/g),
+    (match: RegExpMatchArray) => JSON.parse(match[1]),
+  );
+  expect(jsonBlocks[0].variables).toContainEqual({
+    kind: "Quantity", name: "DOCUMENT_QUANTITY_SENTINEL", expression: "10 mm",
+  });
+  const extrude = jsonBlocks[1].find((row: { feature: { featureId: string } }) => row.feature.featureId === "extrude-1");
+  expect(extrude.feature.parameters).toEqual({ depth: "25 mm" });
+  expect(extrude.inputRoles).toEqual({ entities: ["JGC"] });
+  expect(JSON.stringify(extrude.feature)).not.toContain('"typeName"');
+  expect(JSON.stringify(extrude.feature)).not.toContain('"message"');
   expect(await page.evaluate(() => (window as any).featureScriptReads)).toBe(3);
 });
 
