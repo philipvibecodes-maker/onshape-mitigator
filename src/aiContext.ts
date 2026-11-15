@@ -240,6 +240,15 @@ function compactFeatureParameters(
   const parameters = feature.parameters as unknown[];
   if (featureType === "extrude") {
     const enabled = new Set(EXTRUDE_BASE_PARAMETER_IDS);
+    const throughAll = parameters.some((item) => {
+      if (parameterId(item) !== "endBound" || !item || typeof item !== "object")
+        return false;
+      if (!("message" in item)) return false;
+      const message = item.message;
+      return !!message && typeof message === "object" &&
+        "value" in message && message.value === "THROUGH_ALL";
+    });
+    if (throughAll) enabled.delete("depth");
     const flags = new Set(
       parameters
         .filter((item) => {

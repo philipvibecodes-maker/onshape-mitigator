@@ -44,6 +44,27 @@ function freezeTree(value: unknown): void {
 }
 
 describe("detailed context semantic JSON", () => {
+  it.each(["THROUGH_ALL", "BLIND"])("copies only active extrude depth for %s", (endBound) => {
+    const features = [{
+      typeName: "BTMFeature",
+      message: {
+        featureType: "extrude",
+        parameters: [
+          parameter("Enum", "endBound", { enumName: "BoundingType", value: endBound }),
+          parameter("Quantity", "depth", { expression: "25 mm" }),
+        ],
+      },
+    }];
+    freezeTree(features);
+    expect(jsonFrom(formatContextAsMarkdown(documentSnapshot(features)))).toEqual([{
+      featureType: "extrude",
+      parameters: {
+        endBound: { enum: "BoundingType", value: endBound },
+        ...(endBound === "BLIND" ? { depth: "25 mm" } : {}),
+      },
+    }]);
+  });
+
   it("uses semantic roles, typed enums and expressions while preserving ID case and primitive arrays", () => {
     const snapshot = documentSnapshot({
       features: [{

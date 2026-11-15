@@ -49,6 +49,22 @@ function blocks(value: AiContextSnapshot) {
 }
 
 describe("compact topology context", () => {
+  it.each(["THROUGH_ALL", "BLIND"])("copies only active extrude depth for %s", (endBound) => {
+    const value = snapshot([
+      parameter("Enum", "endBound", { enumName: "BoundingType", value: endBound }),
+      parameter("Quantity", "depth", { expression: "25 mm" }),
+    ]);
+    if (value.scope !== "topology") throw new Error("Expected topology snapshot");
+    value.topology.features[0].featureType = "extrude";
+    const original = structuredClone(value);
+    const [, rows] = blocks(value);
+    expect(rows[0].feature.parameters).toEqual({
+      endBound: { enum: "BoundingType", value: endBound },
+      ...(endBound === "BLIND" ? { depth: "25 mm" } : {}),
+    });
+    expect(value).toEqual(original);
+  });
+
   it("translates native leaves and preserves evaluated graphs, selection and collection details", () => {
     const value = snapshot([
       query("entities", ["A", "b"]),
