@@ -87,6 +87,8 @@ test("anchored popup, fullscreen fallback, migration and persistent cross-tab di
     await expect(
       second.getByRole("region", { name: "Onshape Mitigator menu" }),
     ).toHaveCount(0);
+    const popupMenu = popup.getByRole("region", { name: "Onshape Mitigator menu" });
+    await expect.poll(() => popupMenu.boundingBox()).toMatchObject({ x: 0, y: 0 });
     await expect(popup.getByRole("button", { name: "Copy topology context", exact: true })).toBeEnabled();
     await expect(popup.getByRole("button", { name: "Copy native feature data", exact: true })).toBeEnabled();
     await popup.keyboard.press("Tab");

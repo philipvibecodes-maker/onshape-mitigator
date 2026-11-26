@@ -12,6 +12,7 @@ body {
 }
 .menu-popup {
   position: relative;
+  inset: auto;
   width: 100%;
   max-width: none;
   max-height: 600px;
