@@ -2,8 +2,9 @@
 
 import path from "node:path";
 import process from "node:process";
-import { homedir } from "node:os";
-import { existsSync } from "node:fs";
+import assert from "node:assert/strict";
+import { homedir, hostname } from "node:os";
+import { existsSync, readlinkSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
 import { createConnection } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
@@ -17,6 +18,10 @@ const defaultFlatpakApp = "org.chromium.Chromium";
 const defaultProfileDir = path.join(
   homedir(),
   ".var/app/org.chromium.Chromium/config/chromium",
+);
+const braveProfileDir = path.join(
+  process.env.XDG_CONFIG_HOME || path.join(homedir(), ".config"),
+  "BraveSoftware/Brave-Browser",
 );
 
 function setDesktopEnvironmentDefaults() {
@@ -87,6 +92,21 @@ function profileProcessIds(profileDir) {
     .filter((pid) => Number.isInteger(pid) && pid > 1 && pid !== process.pid);
 }
 
+function profileIsInUse(profileDir) {
+  if (profileProcessIds(profileDir).length) return true;
+  // The browser's normal profile may have been opened without --user-data-dir.
+  let lock;
+  try {
+    lock = readlinkSync(path.join(profileDir, "SingletonLock"));
+  } catch (error) {
+    if (error.code === "ENOENT") return false;
+    throw error;
+  }
+  const hostPrefix = `${hostname()}-`;
+  const pid = lock.startsWith(hostPrefix) && Number(lock.slice(hostPrefix.length));
+  return Number.isInteger(pid) && pid > 1 && existsSync(`/proc/${pid}`);
+}
+
 async function stopProfileProcesses(profileDir) {
   for (const pid of profileProcessIds(profileDir)) {
     try {
@@ -125,15 +145,18 @@ Launches Chromium with the built extension, signs in through the saved
 onshape.com credential, and opens a live Onshape document.
 
 Options:
+  --brave        Use Brave and check its native toolbar popup in the live editor
+  --anonymous    Open a view-only link without signing in (requires ONSHAPE_DOCUMENT_URL)
   --headed       Show the browser window (default: headless)
   --keep-open    Leave the browser running after setup
 
 Environment:
   CHROME_PATH                  Use this executable instead of Flatpak Chromium
+  BRAVE_PATH                   Brave executable (default: /usr/bin/brave-browser)
   CHROMIUM_FLATPAK_APP         Flatpak app override; "none" disables Flatpak
   CHROMIUM_DEBUG_PORT          CDP port override (default: 9224)
   ONSHAPE_PROFILE_DIR          Profile override (default: the current user's
-                               org.chromium.Chromium Flatpak profile)
+                               Flatpak Chromium or Brave profile)
   ONSHAPE_DOCUMENT_URL         Open this document URL instead of the first one
   ONSHAPE_DOCUMENT_NAME        Open a document with this exact visible name
 
@@ -148,7 +171,11 @@ function args() {
     usage();
     process.exit(0);
   }
+  if (values.has("--anonymous") && !process.env.ONSHAPE_DOCUMENT_URL)
+    throw new Error("--anonymous requires an Onshape view-only link in ONSHAPE_DOCUMENT_URL");
   return {
+    brave: values.has("--brave"),
+    anonymous: values.has("--anonymous"),
     headed: values.has("--headed"),
     keepOpen: values.has("--keep-open"),
   };
@@ -193,7 +220,7 @@ export async function signInWithSavedLogin(context, page = context.pages().find(
       await usernameField.waitFor();
     } catch {
       throw new Error(
-        "No saved onshape.com credential found; use an authenticated Chromium profile",
+        "No saved onshape.com credential found; use an authenticated browser profile",
       );
     }
     const username = await usernameField.inputValue();
@@ -243,14 +270,29 @@ export async function openDocument(page) {
   }
   await page.waitForURL((url) => documentPattern.test(url.pathname));
   await page.waitForSelector("#onshape-extension-host", { state: "attached" });
-  await page.locator("canvas").first().waitFor({ state: "visible" });
+  const modelingCanvas = page.locator("#canvas:visible, #viewerdiv canvas:visible").first();
+  try {
+    await modelingCanvas.waitFor({ state: "visible" });
+  } catch (error) {
+    const status = await page.evaluate(() => {
+      const text = document.body.innerText;
+      return {
+        canvases: document.querySelectorAll("canvas").length,
+        webglMessage: /WebGL/i.test(text),
+        accessMessage: /access denied|permission to access|do not have permission|document (?:was )?not found/i.test(text),
+        signInForm: Boolean(document.querySelector('input[name="username"], input[type="password"]')),
+      };
+    });
+    throw new Error(`Onshape modeling canvas did not appear: ${JSON.stringify(status)}`, { cause: error });
+  }
   await page.waitForTimeout(1500);
   return page;
 }
 
-export async function launchOnshapeChromium({ headed = false } = {}) {
+export async function launchOnshapeChromium({ headed = false, brave = false, anonymous = false } = {}) {
   setDesktopEnvironmentDefaults();
-  const app = flatpakApp();
+  const app = brave ? null : flatpakApp();
+  const browserName = brave ? "Brave" : "Chromium";
   const manifestPath = path.join(extensionPath, "manifest.json");
   if (!existsSync(manifestPath))
     throw new Error(`Built extension manifest is missing: ${manifestPath}. Run pnpm run build.`);
@@ -267,13 +309,19 @@ export async function launchOnshapeChromium({ headed = false } = {}) {
     if (visibility.status !== 0)
       throw new Error(`Could not check extension manifest visibility in Flatpak ${app}. Check that the selected Flatpak app can run.`);
   }
-  const executablePath = browserExecutable(app);
-  const profileDir = process.env.ONSHAPE_PROFILE_DIR || defaultProfileDir;
+  const executablePath = brave
+    ? process.env.BRAVE_PATH || "/usr/bin/brave-browser"
+    : browserExecutable(app);
+  if (brave && !existsSync(executablePath))
+    throw new Error(`Brave executable not found: ${executablePath}. Set BRAVE_PATH.`);
+  const profileDir = path.resolve(
+    process.env.ONSHAPE_PROFILE_DIR || (brave ? braveProfileDir : defaultProfileDir),
+  );
   if (!existsSync(profileDir))
-    throw new Error(`Chromium profile does not exist: ${profileDir}`);
-  if (profileProcessIds(profileDir).length)
+    throw new Error(`${browserName} profile does not exist: ${profileDir}`);
+  if (profileIsInUse(profileDir))
     throw new Error(
-      `Chromium profile is already in use: ${profileDir}. Close that browser instead of launching the profile concurrently.`,
+      `${browserName} profile is already in use: ${profileDir}. Close that browser instead of launching the profile concurrently.`,
     );
 
   let context;
@@ -333,29 +381,43 @@ export async function launchOnshapeChromium({ headed = false } = {}) {
       throw new Error("Flatpak Chromium has no default browser context");
     }
   } else {
+    if (brave) process.env.PW_CHROMIUM_ATTACH_TO_OTHER = "1";
     context = await chromium.launchPersistentContext(profileDir, {
       executablePath,
       headless: !headed,
-      ignoreDefaultArgs: ["--password-store=basic", "--use-mock-keychain"],
+      ignoreDefaultArgs: [
+        "--password-store=basic",
+        "--use-mock-keychain",
+        ...(brave ? ["--disable-extensions"] : []),
+      ],
       args: [
-        `--disable-extensions-except=${extensionPath}`,
-        `--load-extension=${extensionPath}`,
+        ...(brave ? [] : [
+          `--disable-extensions-except=${extensionPath}`,
+          `--load-extension=${extensionPath}`,
+        ]),
         "--enable-unsafe-extension-debugging",
         "--password-store=gnome-libsecret",
       ],
-      viewport: { width: 1440, height: 1000 },
+      viewport: brave ? null : { width: 1440, height: 1000 },
     });
   }
   try {
+    const cdp = brave ? await context.browser().newBrowserCDPSession() : null;
+    const loadedExtension = cdp
+      ? await cdp.send("Extensions.loadUnpacked", { path: extensionPath })
+      : null;
     const page = context.pages()[0] ?? (await context.newPage());
-    await page.goto(`${onshapeHome}/documents`);
-    await signInWithSavedLogin(context, page);
+    if (!anonymous) {
+      await page.goto(`${onshapeHome}/documents`);
+      await signInWithSavedLogin(context, page);
+    }
     await openDocument(page);
 
     const deadline = Date.now() + 10000;
     let worker;
     while (!worker && Date.now() < deadline) {
       for (const candidate of context.serviceWorkers()) {
+        if (loadedExtension && new URL(candidate.url()).hostname !== loadedExtension.id) continue;
         const name = await candidate
           .evaluate(() => globalThis.chrome?.runtime?.getManifest?.().name)
           .catch(() => null);
@@ -372,6 +434,8 @@ export async function launchOnshapeChromium({ headed = false } = {}) {
       context,
       page,
       extensionId,
+      browser: app ?? executablePath,
+      cdp,
       flatpakBrowser,
       flatpakProcess,
       port: app ? port : null,
@@ -404,18 +468,58 @@ export async function closeLiveBrowser(live) {
     );
 }
 
+export async function checkBravePopup({ context, page, extensionId, cdp }) {
+  await page.bringToFront();
+  const { targetInfos } = await cdp.send("Target.getTargets", { filter: [{ type: "tab" }] });
+  const target = targetInfos.find(({ url }) => url === page.url());
+  assert(target, "Could not find the live Onshape tab for the Brave toolbar action");
+
+  const [popup] = await Promise.all([
+    context.waitForEvent("page", { timeout: 10000 }),
+    cdp.send("Extensions.triggerAction", { id: extensionId, targetId: target.targetId }),
+  ]);
+  try {
+    await popup.waitForURL(`chrome-extension://${extensionId}/popup.html`);
+    const menu = popup.getByRole("region", { name: "Onshape Mitigator menu" });
+    await menu.waitFor({ state: "visible" });
+    await popup.waitForFunction(() => {
+      const { width, height } = document.querySelector(".menu-popup").getBoundingClientRect();
+      return innerWidth >= Math.floor(width) && innerHeight >= Math.floor(height);
+    }, undefined, { timeout: 5000 });
+    const bounds = await menu.evaluate((element) => {
+      const { left, top, right, bottom } = element.getBoundingClientRect();
+      return { left, top, right, bottom, width: innerWidth, height: innerHeight };
+    });
+    // The viewport uses integer CSS pixels, while the menu can have fractional bounds.
+    assert(
+      bounds.left >= 0 && bounds.top >= 0 &&
+        bounds.right <= bounds.width + 1 && bounds.bottom <= bounds.height + 1,
+      `Brave toolbar popup is clipped: ${JSON.stringify(bounds)}`,
+    );
+    return bounds;
+  } finally {
+    await popup.close();
+  }
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const options = args();
   const live = await launchOnshapeChromium(options);
-  console.log(JSON.stringify({
-    browser: flatpakApp() ?? browserExecutable(null),
-    extensionId: live.extensionId,
-    url: live.page.url(),
-  }));
-  if (options.keepOpen)
-    await new Promise((resolve) => {
-      process.once("SIGINT", resolve);
-      process.once("SIGTERM", resolve);
-    });
-  await closeLiveBrowser(live);
+  try {
+    const popup = options.brave ? await checkBravePopup(live) : undefined;
+    const { origin, pathname } = new URL(live.page.url());
+    console.log(JSON.stringify({
+      browser: live.browser,
+      extensionId: live.extensionId,
+      url: `${origin}${pathname}`,
+      popup,
+    }));
+    if (options.keepOpen)
+      await new Promise((resolve) => {
+        process.once("SIGINT", resolve);
+        process.once("SIGTERM", resolve);
+      });
+  } finally {
+    await closeLiveBrowser(live);
+  }
 }

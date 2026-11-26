@@ -11,6 +11,7 @@
     "test:e2e": "playwright test",
     "test:extension": "pnpm run build && playwright test --config tests/extension/playwright.config.ts",
     "test:live": "pnpm run build && node scripts/onshape-chromium.mjs",
+    "test:live:brave": "pnpm run test:live --brave",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

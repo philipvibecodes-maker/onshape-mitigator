@@ -84,6 +84,7 @@ button:disabled {
   inset: 0;
   background: #0005;
   display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   place-items: center;
   z-index: 2147483646;
   padding: 16px;
@@ -105,17 +106,24 @@ button:disabled {
   display: block;
   width: 32px;
 }
-.settings {
+.settings-frame {
   background: #202124;
   border: 1px solid #5f6368;
   border-radius: 10px;
   color: #f1f3f4;
   box-shadow: 0 8px 32px #0004;
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
   width: 540px;
   max-width: 100%;
-  max-height: 90vh;
+  max-height: min(90vh, 100%);
+}
+.settings {
+  min-height: 0;
+  padding: 12px;
   overflow: auto;
+  color-scheme: dark;
 }
 h2 {
   margin: 0 0 14px;
@@ -162,13 +170,15 @@ input[type="url"] {
 }
 .binding {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 6px 12px;
   margin: 7px 0;
 }
 .binding input {
   width: 180px;
+  max-width: 100%;
   text-align: center;
   cursor: pointer;
 }

@@ -116,119 +116,121 @@ export function Settings({
   }
   return (
     <div className="backdrop">
-      <div
-        className="settings"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="settings-title"
-        ref={dialog}
-        tabIndex={-1}
-        onKeyDown={onKeyDown}
-      >
-        <h2 id="settings-title">Onshape Mitigator settings</h2>
-        <h3>Keyboard shortcuts</h3>
-        <small>
-          Click a binding and press a combination. Backspace clears; Escape
-          cancels recording.
-        </small>
-        {(Object.keys(ACTIONS) as ActionId[]).map((id) => (
-          <label
-            className="binding"
-            key={id}
-            tabIndex={0}
-            onKeyDown={(event) => onBindingKeyDown(id, event)}
-          >
-            {ACTIONS[id]}
+      <div className="settings-frame">
+        <div
+          className="settings"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="settings-title"
+          ref={dialog}
+          tabIndex={-1}
+          onKeyDown={onKeyDown}
+        >
+          <h2 id="settings-title">Onshape Mitigator settings</h2>
+          <h3>Keyboard shortcuts</h3>
+          <small>
+            Click a binding and press a combination. Backspace clears; Escape
+            cancels recording.
+          </small>
+          {(Object.keys(ACTIONS) as ActionId[]).map((id) => (
+            <label
+              className="binding"
+              key={id}
+              tabIndex={0}
+              onKeyDown={(event) => onBindingKeyDown(id, event)}
+            >
+              {ACTIONS[id]}
+              <input
+                type="text"
+                aria-label={ACTIONS[id]}
+                readOnly
+                tabIndex={-1}
+                value={
+                  recording === id
+                    ? "Press shortcut…"
+                    : draft.keyboardShortcuts[id] || "Unbound"
+                }
+                onClick={() => setRecording(id)}
+                onBlur={() => setRecording(null)}
+                onKeyDown={(event) => record(id, event)}
+              />
+            </label>
+          ))}
+          <h3>Alt+numpad views</h3>
+          <small>
+            Assign standard views to physical numpad keys. These mappings work
+            with Num Lock on or off.
+          </small>
+          <div className="numpad-mappings">
+            {KEYPAD_ROWS.flat().map((code) => {
+              const digit = code.replace("Numpad", "");
+              return (
+                <label className={`numpad-mapping numpad-${digit}`} key={code}>
+                  Alt+{digit}
+                  <select
+                    aria-label={`Alt+Numpad ${digit} view`}
+                    value={draft.numpadViewMappings[code] ?? ""}
+                    onChange={(event) =>
+                      persist({
+                        ...draft,
+                        numpadViewMappings: {
+                          ...draft.numpadViewMappings,
+                          [code]: (event.target.value || null) as
+                            | StandardView
+                            | null,
+                        },
+                      })
+                    }
+                  >
+                    <option value="">Unbound</option>
+                    {STANDARD_VIEWS.map((view) => (
+                      <option value={view} key={view}>
+                        {VIEW_LABELS[view]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              );
+            })}
+          </div>
+          <h3>AI assistant</h3>
+          <label>
+            Chatbot URL
             <input
               type="text"
-              aria-label={ACTIONS[id]}
-              readOnly
-              tabIndex={-1}
-              value={
-                recording === id
-                  ? "Press shortcut…"
-                  : draft.keyboardShortcuts[id] || "Unbound"
+              value={draft.aiChatbotUrl}
+              onChange={(event) =>
+                persist({ ...draft, aiChatbotUrl: event.target.value })
               }
-              onClick={() => setRecording(id)}
-              onBlur={() => setRecording(null)}
-              onKeyDown={(event) => record(id, event)}
             />
           </label>
-        ))}
-        <h3>Alt+numpad views</h3>
-        <small>
-          Assign standard views to physical numpad keys. These mappings work
-          with Num Lock on or off.
-        </small>
-        <div className="numpad-mappings">
-          {KEYPAD_ROWS.flat().map((code) => {
-            const digit = code.replace("Numpad", "");
-            return (
-              <label className={`numpad-mapping numpad-${digit}`} key={code}>
-                Alt+{digit}
-                <select
-                  aria-label={`Alt+Numpad ${digit} view`}
-                  value={draft.numpadViewMappings[code] ?? ""}
-                  onChange={(event) =>
-                    persist({
-                      ...draft,
-                      numpadViewMappings: {
-                        ...draft.numpadViewMappings,
-                        [code]: (event.target.value || null) as
-                          | StandardView
-                          | null,
-                      },
-                    })
-                  }
-                >
-                  <option value="">Unbound</option>
-                  {STANDARD_VIEWS.map((view) => (
-                    <option value={view} key={view}>
-                      {VIEW_LABELS[view]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            );
-          })}
-        </div>
-        <h3>AI assistant</h3>
-        <label>
-          Chatbot URL
-          <input
-            type="text"
-            value={draft.aiChatbotUrl}
-            onChange={(event) =>
-              persist({ ...draft, aiChatbotUrl: event.target.value })
-            }
-          />
-        </label>
-        <small>
-          Use {"{context}"} to include document context in the URL. Long context
-          is shortened in the URL; the clipboard keeps the full snapshot.
-        </small>
-        <label>
-          <input
-            type="checkbox"
-            checked={draft.aiOpenAfterCopy}
-            onChange={(event) =>
-              persist({ ...draft, aiOpenAfterCopy: event.target.checked })
-            }
-          />{" "}
-          Open chatbot after copying
-        </label>
-        <small>
-          Context is collected only when you choose Copy topology context, Copy native feature
-          data, or the context shortcut. Opening a chatbot with {"{context}"}
-          shares that context with the configured website.
-        </small>
-        {error && (
-          <p role="alert" className="error">
-            {error}
-          </p>
-        )}
-        <div className="actions">
-          <button onClick={close}>Close</button>
+          <small>
+            Use {"{context}"} to include document context in the URL. Long context
+            is shortened in the URL; the clipboard keeps the full snapshot.
+          </small>
+          <label>
+            <input
+              type="checkbox"
+              checked={draft.aiOpenAfterCopy}
+              onChange={(event) =>
+                persist({ ...draft, aiOpenAfterCopy: event.target.checked })
+              }
+            />{" "}
+            Open chatbot after copying
+          </label>
+          <small>
+            Context is collected only when you choose Copy topology context, Copy native feature
+            data, or the context shortcut. Opening a chatbot with {"{context}"}
+            shares that context with the configured website.
+          </small>
+          {error && (
+            <p role="alert" className="error">
+              {error}
+            </p>
+          )}
+          <div className="actions">
+            <button onClick={close}>Close</button>
+          </div>
         </div>
       </div>
     </div>

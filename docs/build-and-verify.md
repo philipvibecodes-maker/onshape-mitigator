@@ -39,6 +39,16 @@ Ctrl+C. Run `pnpm run test:live -- --help` for profile, executable, Flatpak, por
 and document-selection overrides. `ONSHAPE_DOCUMENT_NAME` selects a named document;
 without either document selector, the first workspace document is used.
 
+Run the same setup in Brave with `pnpm run test:live:brave --headed`. This also
+opens the native toolbar popup in the live editor and checks that the menu fits
+inside the popup viewport. The command uses the regular Brave profile by
+default. Close Brave first, or set `ONSHAPE_PROFILE_DIR` to a separate Brave
+profile already signed in to Onshape. Set `BRAVE_PATH` if Brave is installed
+outside `/usr/bin/brave-browser`.
+
+For the popup check on a public view-only document, set `ONSHAPE_DOCUMENT_URL`
+to its share link and pass `--anonymous` to skip signing in.
+
 If a worktree is under host `/tmp`, Flatpak Chromium's private `/tmp` mount can hide
 `dist/manifest.json` even after a successful build. Chromium then reports a missing
 or unreadable manifest. The helper checks the manifest inside the selected Flatpak

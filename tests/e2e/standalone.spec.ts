@@ -210,6 +210,34 @@ test("fallback menu stays at the upper-right edge and fits a small viewport", as
   await expect(menu).toHaveCount(0);
 });
 
+test("settings fit a narrow viewport and can be closed after scrolling", async ({ page }) => {
+  await openFixture(page);
+  await settings(page);
+  const dialog = page.getByRole("dialog", { name: "Onshape Mitigator settings" });
+  for (const viewport of [{ width: 540, height: 400 }, { width: 320, height: 480 }, { width: 220, height: 200 }]) {
+    await page.setViewportSize(viewport);
+    const { frame, scroller, clientWidth, scrollWidth, clientHeight, scrollHeight } = await dialog.evaluate((element) => ({
+      frame: element.parentElement!.getBoundingClientRect().toJSON(),
+      scroller: element.getBoundingClientRect().toJSON(),
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+    }));
+    expect(frame.left).toBeGreaterThanOrEqual(16);
+    expect(frame.top).toBeGreaterThanOrEqual(16);
+    expect(frame.right).toBeLessThanOrEqual(viewport.width - 16);
+    expect(frame.bottom).toBeLessThanOrEqual(viewport.height - 16);
+    expect(scroller.top).toBeGreaterThanOrEqual(frame.top + 8);
+    expect(scroller.right).toBeLessThanOrEqual(frame.right - 8);
+    expect(scroller.bottom).toBeLessThanOrEqual(frame.bottom - 8);
+    expect(scrollWidth).toBe(clientWidth);
+    expect(scrollHeight).toBeGreaterThan(clientHeight);
+  }
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+});
+
 test("shortcut recording rejects duplicates, cancels with Escape, and saves immediately", async ({
   page,
 }) => {
